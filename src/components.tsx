@@ -14,7 +14,7 @@ import {
   Siren,
   Truck,
 } from 'lucide-react'
-import { STAGES, elapsedHours, formatTime, timeAgo } from './data'
+import { STAGES, blockingTasks, caseOperationalState, elapsedHours, formatTime, nextTask, timeAgo } from './data'
 import { useAppState } from './state'
 import type { AthenaInsight, CaseStatus, DonorCase, Page, Risk, Severity } from './types'
 
@@ -113,16 +113,21 @@ export function EHRBadge({ source }: { source: DonorCase['ehrSource'] }) {
 
 export function CaseRow({ c, compact = false }: { c: DonorCase; compact?: boolean }) {
   const { dispatch } = useAppState()
+  const task = nextTask(c)
+  const blockers = blockingTasks(c)
+  const opState = caseOperationalState(c)
   return (
-    <button className={`case-row ${compact ? 'compact' : ''}`} onClick={() => dispatch({ type: 'openCase', caseId: c.id })}>
+    <button className={`case-row ${compact ? 'compact' : ''} ${opState}`} onClick={() => dispatch({ type: 'openCase', caseId: c.id })}>
       <div>
         <div className="row-main">{c.name} <span className="muted">{c.ageSex}</span></div>
         <div className="row-meta">{c.hospital} to {c.center} / {c.organType} / {c.donorType}</div>
+        {task ? <div className="row-meta">Owner: {task.owner} / Next: {task.nextAction} / Due {formatTime(task.dueAt)}</div> : null}
       </div>
       <div className="row-tags">
         <EHRBadge source={c.ehrSource} />
         <RiskTag risk={c.risk} />
         <StatusPill status={c.status} />
+        {blockers.length ? <span className="tag blocker">{blockers.length} blocker</span> : <span className="tag">{opState}</span>}
       </div>
       <ProgressDots c={c} />
     </button>
@@ -155,13 +160,24 @@ export function AthenaPanel() {
             <div className="insight-top">
               <SeverityDot severity={item.severity} />
               <span>{item.severity}</span>
+              <span>{item.category.replace('_', ' ')}</span>
               <time>{timeAgo(item.t)}</time>
             </div>
             <p>{item.text}</p>
             <div className="source">Source: {item.source}</div>
             <div className="insight-actions">
               {item.actions.slice(0, 2).map((action) => (
-                <button key={action} onClick={() => action === 'acknowledge' ? dispatch({ type: 'acknowledgeInsight', insightId: item.id, caseId: item.caseId }) : item.caseId ? dispatch({ type: 'openCase', caseId: item.caseId }) : dispatch({ type: 'navigate', page: 'matching' })}>
+                <button
+                  key={action}
+                  onClick={() => {
+                    if (action === 'acknowledge') dispatch({ type: 'acknowledgeInsight', insightId: item.id, caseId: item.caseId })
+                    else if (action === 'view_schedule') dispatch({ type: 'navigate', page: 'schedule' })
+                    else if (action === 'view_workflow') dispatch({ type: 'navigate', page: 'workflow' })
+                    else if (action === 'view_matches') dispatch({ type: 'navigate', page: 'matching' })
+                    else if (item.caseId) dispatch({ type: 'openCase', caseId: item.caseId })
+                    else dispatch({ type: 'navigate', page: 'matching' })
+                  }}
+                >
                   {action.replace('_', ' ')}
                 </button>
               ))}

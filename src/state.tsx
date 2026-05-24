@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useMemo, useReducer } from 'react'
-import { STAGES, initialState, pseudoHash } from './data'
-import type { AppState, AthenaInsight, CaseStatus, DonorCase, Page, Referral, Severity } from './types'
+import { STAGES, initialState, makeInsight, pseudoHash } from './data'
+import type { AppState, AthenaInsight, CaseStatus, CaseTask, ClinicalContext, DonorCase, InsightCategory, Page, Referral, Severity } from './types'
 
 type Action =
   | { type: 'navigate'; page: Page; caseId?: number | null }
@@ -21,15 +21,10 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | null>(null)
 
-function insight(text: string, severity: AthenaInsight['severity'], source: string, caseId?: number): AthenaInsight {
+function insight(text: string, severity: AthenaInsight['severity'], category: InsightCategory, source: string, caseId?: number): AthenaInsight {
   return {
-    id: `ins-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    text,
-    severity,
-    source,
-    caseId,
+    ...makeInsight(`ins-${Date.now()}-${Math.random().toString(16).slice(2)}`, text, severity, category, source, caseId),
     t: Date.now(),
-    actions: severity === 'critical' ? ['escalate', 'take_action'] : ['acknowledge', caseId ? 'view_case' : 'view_matches'],
   }
 }
 
@@ -59,6 +54,73 @@ function statusAfterStage(stageIndex: number): CaseStatus {
   if (stageIndex >= STAGES.length - 1) return 'Completed'
   if (stageIndex >= 3) return 'Active'
   return 'Rapid'
+}
+
+function clinicalFromReferral(referral: Referral, caseId: number): ClinicalContext {
+  const createdAt = Date.now()
+  return {
+    labs: [
+      { id: `lab-${caseId}-abo`, label: 'ABO', value: referral.id.endsWith('15') ? 'O+' : 'A+', status: 'normal', source: `${referral.id} FHIR Observation`, updatedAt: createdAt },
+      { id: `lab-${caseId}-gcs`, label: 'GCS', value: `${referral.glasgowComa}`, status: referral.glasgowComa <= 4 ? 'critical' : 'watch', source: `${referral.id} FHIR Observation`, updatedAt: createdAt },
+      { id: `lab-${caseId}-cr`, label: 'Creatinine', value: referral.riskHint === 'High' ? '2.2' : '1.4', unit: 'mg/dL', status: referral.riskHint === 'High' ? 'watch' : 'normal', source: `${referral.id} lab bundle`, updatedAt: createdAt },
+    ],
+    serology: [
+      { id: `ser-${caseId}-hiv`, label: 'HIV Ag/Ab', value: 'Non-reactive', status: 'normal', source: `${referral.id} serology bundle`, updatedAt: createdAt },
+      { id: `ser-${caseId}-cmv`, label: 'CMV IgG', value: 'Pending', status: 'pending', source: `${referral.id} serology bundle`, updatedAt: createdAt },
+      { id: `ser-${caseId}-hcv`, label: 'HCV Ab', value: 'Pending', status: 'pending', source: `${referral.id} serology bundle`, updatedAt: createdAt },
+    ],
+    imaging: [
+      { id: `img-${caseId}-ct`, title: 'Initial CT packet', kind: 'imaging', status: 'review', source: `${referral.id} DocumentReference`, updatedAt: createdAt },
+      { id: `img-${caseId}-echo`, title: 'Echo request', kind: 'imaging', status: 'pending', source: 'Evaluation checklist', updatedAt: createdAt },
+    ],
+    authorization: [
+      { id: `auth-${caseId}-nok`, title: 'Next-of-kin authorization', kind: 'authorization', status: 'pending', source: 'Coordinator workflow', updatedAt: createdAt },
+      { id: `auth-${caseId}-decl`, title: 'DCD / DBD declaration', kind: 'authorization', status: 'review', source: `${referral.id} clinical trigger`, updatedAt: createdAt },
+    ],
+    attachments: [
+      { id: `att-${caseId}-bundle`, title: `${referral.bundleSize} normalized FHIR resources`, kind: 'attachment', status: 'received', source: referral.ehr, updatedAt: createdAt },
+      { id: `att-${caseId}-summary`, title: 'Athena intake summary draft', kind: 'attachment', status: 'review', source: 'Athena', updatedAt: createdAt },
+    ],
+  }
+}
+
+function tasksFromReferral(referral: Referral, caseId: number): CaseTask[] {
+  const createdAt = Date.now()
+  return [
+    {
+      id: `task-${caseId}-eval`,
+      title: referral.riskHint === 'High' ? 'Resolve high-risk evaluation blockers' : 'Complete evaluation checklist',
+      owner: referral.riskHint === 'High' ? 'Clinical Lead' : 'Coordinator',
+      dueAt: createdAt + (referral.riskHint === 'High' ? 30 : 90) * 60000,
+      status: referral.riskHint === 'High' ? 'blocked' : 'in-progress',
+      severity: referral.riskHint === 'High' ? 'critical' : 'warning',
+      caseId,
+      stage: 'Evaluation',
+      nextAction: referral.riskHint === 'High' ? 'Review GCS and pending serology' : 'Close imaging and HLA checklist items',
+    },
+    {
+      id: `task-${caseId}-auth`,
+      title: 'Confirm authorization path and family communication',
+      owner: 'Family Services',
+      dueAt: createdAt + 120 * 60000,
+      status: 'open',
+      severity: 'warning',
+      caseId,
+      stage: 'Authorization',
+      nextAction: 'Prepare authorization documentation',
+    },
+    {
+      id: `task-${caseId}-report`,
+      title: 'Prepare OPTN draft fields for human review',
+      owner: 'Reporting Analyst',
+      dueAt: createdAt + 180 * 60000,
+      status: 'open',
+      severity: 'info',
+      caseId,
+      stage: 'Allocation',
+      nextAction: 'Review policy-version mapping coverage',
+    },
+  ]
 }
 
 function createCaseFromReferral(referral: Referral, nextId: number): DonorCase {
@@ -98,7 +160,15 @@ function createCaseFromReferral(referral: Referral, nextId: number): DonorCase {
       insight(
         `${referral.ehr} provided ${referral.bundleSize}; intake is complete and Evaluation is now the active blocker.`,
         referral.riskHint === 'High' ? 'critical' : 'info',
+        referral.riskHint === 'High' ? 'workflow_blocker' : 'missing_data',
         `${referral.id} FHIR Bundle`,
+        nextId,
+      ),
+      insight(
+        `Serology and imaging review were seeded from ${referral.id}; pending items are now visible as owned tasks.`,
+        'warning',
+        'missing_data',
+        `${referral.id} normalized clinical context`,
         nextId,
       ),
     ],
@@ -123,6 +193,8 @@ function createCaseFromReferral(referral: Referral, nextId: number): DonorCase {
       },
     ],
     custody: [],
+    tasks: tasksFromReferral(referral, nextId),
+    clinical: clinicalFromReferral(referral, nextId),
   }
 }
 
@@ -144,7 +216,7 @@ function reducer(state: AppState, action: Action): AppState {
         referrals: state.referrals.map((item) => (item.id === action.referralId ? { ...item, status: 'accepted' } : item)),
         cases: [newCase, ...state.cases],
         globalInsights: [
-          insight(`${referral.id} became an active case. Athena is now tracking Evaluation blockers.`, 'info', 'FHIR Inbox acceptance', nextId),
+          insight(`${referral.id} became an active case. Athena is now tracking Evaluation blockers and pending serology.`, 'info', 'workflow_blocker', 'FHIR Inbox acceptance', nextId),
           ...state.globalInsights,
         ],
       }
@@ -172,8 +244,15 @@ function reducer(state: AppState, action: Action): AppState {
           )
           return {
             ...updated,
+            tasks: updated.tasks.map((task) =>
+              task.stage === STAGES[c.currentStageIdx].name && task.status !== 'complete'
+                ? { ...task, status: 'complete' }
+                : task.stage === STAGES[nextStage].name && task.status === 'open'
+                  ? { ...task, status: 'in-progress' }
+                  : task,
+            ),
             insights: [
-              insight(`Workflow advanced to ${STAGES[nextStage].name}; verify next-stage checklist before external coordination.`, c.risk === 'High' ? 'warning' : 'info', 'Workflow engine', c.id),
+              insight(`Workflow advanced to ${STAGES[nextStage].name}; verify next-stage checklist before external coordination.`, c.risk === 'High' ? 'warning' : 'info', 'workflow_blocker', 'Workflow engine', c.id),
               ...updated.insights,
             ],
           }
@@ -186,7 +265,7 @@ function reducer(state: AppState, action: Action): AppState {
           c.id === action.caseId
             ? {
                 ...addCaseEvent({ ...c, status: action.status }, `Status changed to ${action.status}`, action.status === 'Rapid' ? 'critical' : 'info'),
-                insights: [insight(`Status changed to ${action.status}; board and reports have been recalculated.`, action.status === 'Rapid' ? 'critical' : 'info', 'Case board status action', c.id), ...c.insights],
+                insights: [insight(`Status changed to ${action.status}; board, reports, and urgency indicators have been recalculated.`, action.status === 'Rapid' ? 'critical' : 'info', action.status === 'Rapid' ? 'timing_risk' : 'workflow_blocker', 'Case board status action', c.id), ...c.insights],
               }
             : c,
         ),
@@ -198,6 +277,7 @@ function reducer(state: AppState, action: Action): AppState {
           insight(
             `${state.cases.filter((c) => c.status !== 'Completed').length} active workflows, ${state.cases.filter((c) => c.risk === 'High').length} high-risk cases, ${state.referrals.filter((r) => r.status === 'new').length} new referrals require monitoring.`,
             state.cases.some((c) => c.status === 'Rapid') ? 'warning' : 'info',
+            state.cases.some((c) => c.tasks.some((task) => task.status === 'blocked')) ? 'workflow_blocker' : 'timing_risk',
             'Live cross-case state',
           ),
           ...state.globalInsights,
@@ -214,6 +294,7 @@ function reducer(state: AppState, action: Action): AppState {
                   insight(
                     `${c.name} is in ${STAGES[c.currentStageIdx].name}; ${c.workflowSteps[c.currentStageIdx].checklist.filter((item) => !item.done).length} checklist items remain open.`,
                     c.risk === 'High' ? 'critical' : 'warning',
+                    c.tasks.some((task) => task.status === 'blocked') ? 'workflow_blocker' : 'missing_data',
                     'Case workflow + checklist state',
                     c.id,
                   ),

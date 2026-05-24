@@ -2,10 +2,13 @@ import type {
   AppState,
   AthenaInsight,
   AuditEntry,
+  CaseTask,
   CaseEvent,
   CaseStatus,
+  ClinicalContext,
   CustodyStop,
   DonorCase,
+  InsightCategory,
   MatchCandidate,
   Referral,
   Risk,
@@ -58,6 +61,28 @@ export function formatTime(t: number | null) {
   }).format(t)
 }
 
+export function openTasks(c: DonorCase) {
+  return c.tasks.filter((task) => task.status !== 'complete')
+}
+
+export function blockingTasks(c: DonorCase) {
+  return c.tasks.filter((task) => task.status === 'blocked' || task.severity === 'critical')
+}
+
+export function dueSoonTasks(c: DonorCase) {
+  return openTasks(c).filter((task) => task.dueAt - Date.now() < 90 * 60000)
+}
+
+export function nextTask(c: DonorCase) {
+  return [...openTasks(c)].sort((a, b) => a.dueAt - b.dueAt)[0] ?? null
+}
+
+export function caseOperationalState(c: DonorCase) {
+  if (blockingTasks(c).length > 0) return 'blocked'
+  if (dueSoonTasks(c).length > 0 || c.risk === 'High') return 'at-risk'
+  return 'on-track'
+}
+
 function workflow(currentStageIdx: number): WorkflowStep[] {
   return STAGES.map((stage, index) => ({
     name: stage.name,
@@ -96,16 +121,103 @@ function events(stage: string, risk: Risk): CaseEvent[] {
   ]
 }
 
-function insight(id: string, text: string, severity: AthenaInsight['severity'], source: string, caseId?: number): AthenaInsight {
+export function makeInsight(
+  id: string,
+  text: string,
+  severity: AthenaInsight['severity'],
+  category: InsightCategory,
+  source: string,
+  caseId?: number,
+): AthenaInsight {
   return {
     id,
     text,
     severity,
+    category,
     t: now - Math.floor(Math.random() * 9000000),
     source,
     caseId,
-    actions: severity === 'critical' ? ['escalate', 'take_action'] : ['acknowledge', 'view_case'],
+    actions:
+      category === 'logistics_risk'
+        ? ['view_schedule', 'escalate']
+        : category === 'workflow_blocker'
+          ? ['view_workflow', 'take_action']
+          : category === 'reporting_risk'
+            ? ['take_action', 'view_case']
+            : severity === 'critical'
+              ? ['escalate', 'take_action']
+              : ['acknowledge', 'view_case'],
   }
+}
+
+const insight = makeInsight
+
+function clinical(id: number, risk: Risk, stage: string): ClinicalContext {
+  const critical = risk === 'High'
+  return {
+    labs: [
+      { id: `lab-${id}-cr`, label: 'Creatinine', value: critical ? '2.4' : '1.1', unit: 'mg/dL', status: critical ? 'watch' : 'normal', source: 'HL7 Lab Feed', updatedAt: now - 4600000 },
+      { id: `lab-${id}-lac`, label: 'Lactate', value: critical ? '4.8' : '1.6', unit: 'mmol/L', status: critical ? 'critical' : 'normal', source: 'HL7 Lab Feed', updatedAt: now - 3900000 },
+      { id: `lab-${id}-abo`, label: 'ABO', value: id % 2 === 0 ? 'O+' : 'A+', status: 'normal', source: 'EHR Demographics', updatedAt: now - 7800000 },
+    ],
+    serology: [
+      { id: `ser-${id}-cmv`, label: 'CMV IgG', value: 'Positive', status: 'watch', source: 'Serology Panel', updatedAt: now - 5400000 },
+      { id: `ser-${id}-hiv`, label: 'HIV Ag/Ab', value: 'Non-reactive', status: 'normal', source: 'Serology Panel', updatedAt: now - 5400000 },
+      { id: `ser-${id}-hcv`, label: 'HCV Ab', value: critical ? 'Pending' : 'Non-reactive', status: critical ? 'pending' : 'normal', source: 'Serology Panel', updatedAt: now - 1800000 },
+    ],
+    imaging: [
+      { id: `img-${id}-ct`, title: 'Chest / abdomen CT', kind: 'imaging', status: stage === 'Evaluation' ? 'review' : 'received', source: 'Imaging Feed', updatedAt: now - 3200000 },
+      { id: `img-${id}-echo`, title: 'Echocardiogram report', kind: 'imaging', status: critical ? 'pending' : 'received', source: 'Cardiology', updatedAt: now - 2600000 },
+    ],
+    authorization: [
+      { id: `auth-${id}-nok`, title: 'Next-of-kin authorization', kind: 'authorization', status: stage === 'Authorization' ? 'review' : 'signed', source: 'Coordinator Attestation', updatedAt: now - 6400000 },
+      { id: `auth-${id}-dbd`, title: 'DCD / DBD declaration', kind: 'authorization', status: critical ? 'review' : 'signed', source: 'OPO Medical Director', updatedAt: now - 5200000 },
+    ],
+    attachments: [
+      { id: `att-${id}-hpi`, title: 'Hospital course summary', kind: 'attachment', status: 'received', source: 'EHR DocumentReference', updatedAt: now - 8200000 },
+      { id: `att-${id}-photo`, title: 'OR readiness image set', kind: 'attachment', status: stage === 'Recovery' ? 'received' : 'pending', source: 'Mobile Capture', updatedAt: now - 1300000 },
+    ],
+  }
+}
+
+function tasks(id: number, risk: Risk, stageIndex: number): CaseTask[] {
+  const stage = STAGES[stageIndex].name
+  const severe = risk === 'High'
+  return [
+    {
+      id: `task-${id}-1`,
+      title: severe ? 'Resolve lactate trend before recovery mobilization' : `Complete ${stage} checklist review`,
+      owner: severe ? 'Clinical Lead' : 'Coordinator',
+      dueAt: now + (severe ? 32 : 90) * 60000,
+      status: severe ? 'blocked' : 'in-progress',
+      severity: severe ? 'critical' : 'warning',
+      caseId: id,
+      stage,
+      nextAction: severe ? 'Escalate to medical director' : 'Close missing checklist items',
+    },
+    {
+      id: `task-${id}-2`,
+      title: stageIndex >= 3 ? 'Confirm transport handoff and custody signer' : 'Confirm center acceptance window',
+      owner: stageIndex >= 3 ? 'Logistics Alpha' : 'Allocation Coordinator',
+      dueAt: now + (stageIndex >= 3 ? 48 : 130) * 60000,
+      status: stageIndex >= 3 ? 'open' : 'in-progress',
+      severity: stageIndex >= 3 ? 'warning' : 'info',
+      caseId: id,
+      stage: stageIndex >= 3 ? 'Transport' : 'Allocation',
+      nextAction: stageIndex >= 3 ? 'Verify chain-of-custody leg' : 'Review provisional match list',
+    },
+    {
+      id: `task-${id}-3`,
+      title: 'Prepare OPTN draft fields for human review',
+      owner: 'Reporting Analyst',
+      dueAt: now + 180 * 60000,
+      status: stageIndex >= 4 ? 'complete' : 'open',
+      severity: 'info',
+      caseId: id,
+      stage: 'Allocation',
+      nextAction: 'Review policy-version mapping coverage',
+    },
+  ]
 }
 
 function custody(caseId: number, active: boolean): CustodyStop[] {
@@ -156,6 +268,7 @@ function buildCase(
   ctx: Pick<DonorCase, 'hospital' | 'center' | 'organType' | 'ehrSource' | 'donorType'>,
 ): DonorCase {
   const caseEvents = events(STAGES[currentStageIdx].name, risk)
+  const stageName = STAGES[currentStageIdx].name
   return {
     id,
     name,
@@ -172,8 +285,8 @@ function buildCase(
       { author: 'Athena', text: 'Source-linked summary generated from workflow state, EHR intake, and logistics events.', t: now - 2400000 },
     ],
     insights: [
-      insight(`case-${id}-a`, risk === 'High' ? 'High-risk case requires escalation review before recovery mobilization.' : 'Workflow is progressing inside expected operating window.', risk === 'High' ? 'critical' : 'info', 'Case timeline + workflow checklist', id),
-      insight(`case-${id}-b`, 'Missing checklist item may block the next stage if not resolved.', 'warning', 'Current workflow stage', id),
+      insight(`case-${id}-a`, risk === 'High' ? 'High-risk case requires escalation review before recovery mobilization.' : 'Workflow is progressing inside expected operating window.', risk === 'High' ? 'critical' : 'info', risk === 'High' ? 'timing_risk' : 'workflow_blocker', 'Case timeline + workflow checklist', id),
+      insight(`case-${id}-b`, 'Missing checklist item may block the next stage if not resolved.', 'warning', 'missing_data', 'Current workflow stage', id),
     ],
     auditChain: [
       audit(id, 'FHIR bundle received and normalized', 'complete', 1),
@@ -181,6 +294,8 @@ function buildCase(
       audit(id, `${STAGES[currentStageIdx].name} state recomputed`, risk === 'High' ? 'warning' : 'info', 3),
     ],
     custody: currentStageIdx >= 3 ? custody(id, status !== 'Completed') : [],
+    tasks: tasks(id, risk, currentStageIdx),
+    clinical: clinical(id, risk, stageName),
     ...ctx,
   }
 }
@@ -284,8 +399,8 @@ export const initialState: AppState = {
   matches,
   schedules,
   globalInsights: [
-    insight('global-1', 'UNOS reconciliation queue has four field mismatches pending coordinator review.', 'warning', 'OPTN Hub / policy mappings'),
-    insight('global-2', 'One rapid case has a critical timing risk and should remain pinned in command view.', 'critical', 'Case board status distribution'),
-    insight('global-3', 'Epic and Cerner feeds are live; latest referral bundle arrived under two minutes ago.', 'info', 'FHIR inbox connector telemetry'),
+    insight('global-1', 'UNOS reconciliation queue has four field mismatches pending coordinator review.', 'warning', 'reporting_risk', 'OPTN Hub / policy mappings'),
+    insight('global-2', 'One rapid case has a critical timing risk and should remain pinned in command view.', 'critical', 'timing_risk', 'Case board status distribution'),
+    insight('global-3', 'Epic and Cerner feeds are live; latest referral bundle arrived under two minutes ago.', 'info', 'missing_data', 'FHIR inbox connector telemetry'),
   ],
 }
