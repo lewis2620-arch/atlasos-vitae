@@ -46,6 +46,8 @@ The build-pack includes `09-feature-map-and-roadmap.md`, which should be treated
 
 V1 execution planning lives in `build-pack/10-v1-execution-plan.md`. V1 is scoped as an investor-demo frontend deepening pass: stronger Case Detail, richer intake-to-case flow, deterministic Athena insights, workflow/board urgency polish, and more credible Reports/Matching/Scheduling surfaces.
 
+The investor demo walkthrough lives in `docs/INVESTOR_DEMO_WALKTHROUGH.md`.
+
 ## Current Scope
 
 The frontend is demoable end to end. It includes meaningful surfaces for Dashboard, Donor Intake, Case Board, Case Detail, Workflow Aggregate, Matching, Scheduling, Reports, Athena global context, and Athena case context.

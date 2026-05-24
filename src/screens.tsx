@@ -1,14 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Database, FileJson, GitCommitHorizontal, Plane, Plus, ShieldCheck, Timer, Truck } from 'lucide-react'
+import { Activity, AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, Database, FileCheck2, GitCommitHorizontal, Image, Microscope, Paperclip, Plane, Plus, ShieldCheck, Timer, Truck } from 'lucide-react'
 import { CaseHeader, CaseRow, EHRBadge, EmptyState, Panel, ProgressDots, RiskTag, SeverityDot, StatusPill, Timeline } from './components'
-import { STAGES, elapsedHours, formatTime, timeAgo } from './data'
+import { STAGES, blockingTasks, caseOperationalState, dueSoonTasks, elapsedHours, formatTime, nextTask, openTasks, timeAgo } from './data'
 import { useAppState } from './state'
-import type { CaseStatus, DonorCase, Referral } from './types'
+import type { CaseStatus, ClinicalDocument, ClinicalResult, DonorCase, Referral } from './types'
 
 export function Dashboard() {
   const { state } = useAppState()
   const activeCases = state.cases.filter((c) => c.status !== 'Completed')
   const highRisk = activeCases.filter((c) => c.risk === 'High').length
+  const blocked = activeCases.filter((c) => blockingTasks(c).length > 0).length
   const avgHours = Math.round(activeCases.reduce((sum, c) => sum + elapsedHours(c.createdAt), 0) / Math.max(activeCases.length, 1))
 
   return (
@@ -39,8 +40,8 @@ export function Dashboard() {
       <div className="kpi-grid">
         <Kpi label="Total cases" value={state.cases.length} meta="seeded operational board" />
         <Kpi label="High-risk active" value={highRisk} meta="requires urgency monitoring" tone="critical" />
+        <Kpi label="Blocked tasks" value={blocked} meta="owned operational blockers" tone={blocked ? 'critical' : 'default'} />
         <Kpi label="Avg time open" value={`${avgHours}h`} meta="active workflow cases" />
-        <Kpi label="Referral queue" value={state.referrals.filter((r) => r.status === 'new').length} meta="FHIR intake candidates" tone="warning" />
       </div>
       <Panel title="Active Case Stream" meta="click any row to open flagship detail">
         <div className="case-list">
@@ -143,8 +144,11 @@ export function CaseBoard() {
 function BoardCard({ c }: { c: DonorCase }) {
   const { dispatch } = useAppState()
   const nextStatus: CaseStatus | null = c.status === 'Pending' ? 'Rapid' : c.status === 'Rapid' ? 'Active' : c.status === 'Active' ? 'Completed' : null
+  const task = nextTask(c)
+  const blockers = blockingTasks(c)
+  const opState = caseOperationalState(c)
   return (
-    <article className={`board-card risk-${c.risk.toLowerCase()} ${c.status === 'Rapid' || (c.risk === 'High' && c.status === 'Active') ? 'pulse' : ''}`}>
+    <article className={`board-card risk-${c.risk.toLowerCase()} ${opState} ${c.status === 'Rapid' || blockers.length || (c.risk === 'High' && c.status === 'Active') ? 'pulse' : ''}`}>
       <button className="board-open" onClick={() => dispatch({ type: 'openCase', caseId: c.id })}>
         <div>
           <strong>{c.name}</strong>
@@ -157,6 +161,12 @@ function BoardCard({ c }: { c: DonorCase }) {
         <span>{STAGES[c.currentStageIdx].name}</span>
         <span>{elapsedHours(c.createdAt)}h</span>
       </div>
+      <div className="board-task">
+        <span>{task ? task.owner : 'No open owner'}</span>
+        <strong>{task ? task.nextAction : 'No active blockers'}</strong>
+        <small>{task ? `Due ${formatTime(task.dueAt)}` : opState}</small>
+      </div>
+      {blockers.length ? <span className="board-blocker">{blockers.length} blocker / {opState}</span> : null}
       {nextStatus ? <button className="mini-action" onClick={() => dispatch({ type: 'updateStatus', caseId: c.id, status: nextStatus })}>to {nextStatus}</button> : null}
     </article>
   )
@@ -220,7 +230,7 @@ export function CaseDetail() {
           <div className="case-insight-list">
             {c.insights.filter((item) => !item.dismissed).slice(0, 5).map((item) => (
               <div className={`insight ${item.severity}`} key={item.id}>
-                <div className="insight-top"><SeverityDot severity={item.severity} /><span>{item.severity}</span><time>{timeAgo(item.t)}</time></div>
+                <div className="insight-top"><SeverityDot severity={item.severity} /><span>{item.severity}</span><span>{item.category.replace('_', ' ')}</span><time>{timeAgo(item.t)}</time></div>
                 <p>{item.text}</p>
                 <div className="source">Source: {item.source}</div>
               </div>
@@ -228,23 +238,102 @@ export function CaseDetail() {
           </div>
         </Panel>
       </div>
+      <div className="detail-v1-grid">
+        <TaskPanel c={c} />
+        <ClinicalPanel title="Labs" icon={<Microscope size={15} />} results={c.clinical.labs} />
+        <ClinicalPanel title="Serology" icon={<ShieldCheck size={15} />} results={c.clinical.serology} />
+        <DocumentPanel title="Imaging" icon={<Image size={15} />} docs={c.clinical.imaging} />
+        <DocumentPanel title="Authorization" icon={<FileCheck2 size={15} />} docs={c.clinical.authorization} />
+        <DocumentPanel title="Attachments" icon={<Paperclip size={15} />} docs={c.clinical.attachments} />
+      </div>
     </div>
+  )
+}
+
+function TaskPanel({ c }: { c: DonorCase }) {
+  return (
+    <Panel title="Tasks / Blockers" meta={`${openTasks(c).length} open / ${blockingTasks(c).length} blocked`}>
+      <div className="task-list">
+        {c.tasks.map((task) => (
+          <div className={`task-card ${task.status} ${task.severity}`} key={task.id}>
+            <div className="task-top">
+              <span>{task.stage}</span>
+              <span>{task.status}</span>
+            </div>
+            <strong>{task.title}</strong>
+            <p>{task.nextAction}</p>
+            <div className="task-meta">
+              <span>{task.owner}</span>
+              <span>Due {formatTime(task.dueAt)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  )
+}
+
+function ClinicalPanel({ title, icon, results }: { title: string; icon: React.ReactNode; results: ClinicalResult[] }) {
+  return (
+    <Panel title={title} meta="clinical feed">
+      <div className="clinical-head">{icon}<span>{results.length} values</span></div>
+      <div className="clinical-list">
+        {results.map((result) => (
+          <div className={`clinical-row ${result.status}`} key={result.id}>
+            <div><strong>{result.label}</strong><span>{result.source}</span></div>
+            <div><strong>{result.value}{result.unit ? ` ${result.unit}` : ''}</strong><span>{result.status}</span></div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  )
+}
+
+function DocumentPanel({ title, icon, docs }: { title: string; icon: React.ReactNode; docs: ClinicalDocument[] }) {
+  return (
+    <Panel title={title} meta="source-linked">
+      <div className="clinical-head">{icon}<span>{docs.length} artifacts</span></div>
+      <div className="clinical-list">
+        {docs.map((doc) => (
+          <div className={`clinical-row ${doc.status}`} key={doc.id}>
+            <div><strong>{doc.title}</strong><span>{doc.source}</span></div>
+            <div><strong>{doc.status}</strong><span>{formatTime(doc.updatedAt)}</span></div>
+          </div>
+        ))}
+      </div>
+    </Panel>
   )
 }
 
 export function WorkflowAggregate() {
   const { state } = useAppState()
+  const active = state.cases.filter((c) => c.status !== 'Completed')
   return (
     <div className="screen-stack">
       <div className="stage-grid">
         {STAGES.map((stage, index) => {
-          const count = state.cases.filter((c) => c.currentStageIdx === index && c.status !== 'Completed').length
-          return <KpiTile key={stage.name} label={stage.name} value={count} icon={<Activity size={17} />} />
+          const stageCases = active.filter((c) => c.currentStageIdx === index)
+          const blocked = stageCases.filter((c) => blockingTasks(c).length > 0).length
+          return <KpiTile key={stage.name} label={`${stage.name} / ${blocked} blocked`} value={stageCases.length} icon={<Activity size={17} />} />
         })}
       </div>
-      <Panel title="Workflow Distribution" meta="all active cases">
+      <Panel title="Workflow Coordination" meta="owners, blockers, next actions">
         <div className="case-list">
           {state.cases.map((c) => <CaseRow c={c} key={c.id} />)}
+        </div>
+      </Panel>
+      <Panel title="At-Risk Work Queue" meta={`${active.filter((c) => caseOperationalState(c) !== 'on-track').length} cases`}>
+        <div className="workflow-risk-grid">
+          {active.filter((c) => caseOperationalState(c) !== 'on-track').map((c) => {
+            const task = nextTask(c)
+            return (
+              <div className={`workflow-risk-card ${caseOperationalState(c)}`} key={c.id}>
+                <div><strong>{c.name}</strong><span>{STAGES[c.currentStageIdx].name} / {caseOperationalState(c)}</span></div>
+                <p>{task?.nextAction ?? 'Review workflow state'}</p>
+                <small>{task?.owner ?? 'Coordinator'} / {task ? formatTime(task.dueAt) : 'no due time'}</small>
+              </div>
+            )
+          })}
         </div>
       </Panel>
     </div>
@@ -256,9 +345,19 @@ function KpiTile({ label, value, icon }: { label: string; value: number | string
 }
 
 export function Matching() {
-  const { state } = useAppState()
+  const { state, selectedCase } = useAppState()
+  const anchorCase = selectedCase ?? state.cases.find((c) => c.status === 'Rapid') ?? state.cases[0]
   return (
     <div className="screen-stack">
+      <Panel title="Active Organ Context" meta={anchorCase ? `${anchorCase.name} / ${anchorCase.organType}` : 'global'}>
+        <div className="match-context">
+          <ClipboardList size={18} />
+          <div>
+            <strong>{anchorCase?.organType ?? 'Multi-organ'} ranking is scoped to donor risk, region, HLA/CPRA, and transport timing.</strong>
+            <p>{anchorCase ? `${anchorCase.hospital} to ${anchorCase.center}. Current blocker: ${nextTask(anchorCase)?.nextAction ?? 'none'}.` : 'No active case selected.'}</p>
+          </div>
+        </div>
+      </Panel>
       <Panel title="Recipient Match Queue" meta="green >=85 / yellow 70-84 / muted below 70">
         <div className="match-grid">
           {state.matches.map((m) => (
@@ -280,8 +379,15 @@ export function Matching() {
 export function Scheduling() {
   const { state } = useAppState()
   const custodyCases = state.cases.filter((c) => c.custody.length > 0)
+  const atRiskLogistics = state.cases.filter((c) => dueSoonTasks(c).length > 0 || c.custody.some((stop) => stop.status === 'current')).length
   return (
     <div className="screen-stack">
+      <div className="stage-grid">
+        <KpiTile label="OR blocks" value={state.schedules.filter((item) => item.label.includes('OR') || item.label.includes('prep')).length} icon={<Timer size={17} />} />
+        <KpiTile label="Transport legs" value={state.schedules.filter((item) => !item.label.includes('OR')).length} icon={<Truck size={17} />} />
+        <KpiTile label="Custody chains" value={custodyCases.length} icon={<ShieldCheck size={17} />} />
+        <KpiTile label="Logistics risk" value={atRiskLogistics} icon={<AlertTriangle size={17} />} />
+      </div>
       <div className="two-column">
         <Panel title="OR Suites" meta="recovery blocks">
           <ScheduleRows filter="OR" />
@@ -336,18 +442,31 @@ export function Reports() {
   const { state } = useAppState()
   const statusCounts = ['Pending', 'Rapid', 'Active', 'Completed'].map((status) => [status, state.cases.filter((c) => c.status === status).length] as const)
   const riskCounts = ['Low', 'Medium', 'High'].map((risk) => [risk, state.cases.filter((c) => c.risk === risk).length] as const)
+  const blockedCases = state.cases.filter((c) => blockingTasks(c).length > 0).length
+  const openTaskCount = state.cases.reduce((sum, c) => sum + openTasks(c).length, 0)
   return (
     <div className="screen-stack">
       <div className="kpi-grid">
         <KpiTile label="Completed" value={state.cases.filter((c) => c.status === 'Completed').length} icon={<CheckCircle2 size={17} />} />
+        <KpiTile label="Open tasks" value={openTaskCount} icon={<ClipboardList size={17} />} />
+        <KpiTile label="Blocked cases" value={blockedCases} icon={<AlertTriangle size={17} />} />
         <KpiTile label="Audit events" value={state.cases.reduce((sum, c) => sum + c.auditChain.length, 0)} icon={<GitCommitHorizontal size={17} />} />
-        <KpiTile label="Custody chains" value={state.cases.filter((c) => c.custody.length).length} icon={<ShieldCheck size={17} />} />
-        <KpiTile label="New referrals" value={state.referrals.filter((r) => r.status === 'new').length} icon={<FileJson size={17} />} />
       </div>
       <div className="two-column">
         <Distribution title="Status Distribution" data={statusCounts} />
         <Distribution title="Risk Distribution" data={riskCounts} />
       </div>
+      <Panel title="Operational Readiness" meta="live frontend state">
+        <div className="readiness-grid">
+          {state.cases.map((c) => (
+            <div className={`readiness-card ${caseOperationalState(c)}`} key={c.id}>
+              <strong>{c.name}</strong>
+              <span>{caseOperationalState(c)} / {openTasks(c).length} open tasks / {blockingTasks(c).length} blockers</span>
+              <small>{nextTask(c)?.nextAction ?? 'No active next action'}</small>
+            </div>
+          ))}
+        </div>
+      </Panel>
       <Panel title="Audit Ledger Snapshot" meta="hash-linked / 7-year WORM target">
         <div className="audit-list">
           {state.cases.flatMap((c) => c.auditChain.map((entry) => ({ ...entry, caseName: c.name }))).sort((a, b) => b.t - a.t).slice(0, 10).map((entry) => (

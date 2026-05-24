@@ -2,6 +2,8 @@ export type Severity = 'info' | 'warning' | 'critical' | 'complete'
 export type Risk = 'Low' | 'Medium' | 'High'
 export type CaseStatus = 'Pending' | 'Rapid' | 'Active' | 'Completed'
 export type StageStatus = 'complete' | 'current' | 'pending'
+export type TaskStatus = 'open' | 'blocked' | 'in-progress' | 'complete'
+export type InsightCategory = 'missing_data' | 'timing_risk' | 'workflow_blocker' | 'reporting_risk' | 'logistics_risk'
 export type Page =
   | 'dashboard'
   | 'intake'
@@ -42,12 +44,13 @@ export type CaseNote = {
   t: number
 }
 
-export type InsightAction = 'acknowledge' | 'take_action' | 'view_case' | 'view_matches' | 'escalate'
+export type InsightAction = 'acknowledge' | 'take_action' | 'view_case' | 'view_matches' | 'view_schedule' | 'view_workflow' | 'escalate'
 
 export type AthenaInsight = {
   id: string
   text: string
   severity: Exclude<Severity, 'complete'>
+  category: InsightCategory
   t: number
   actions: InsightAction[]
   dismissed?: boolean
@@ -76,6 +79,45 @@ export type CustodyStop = {
   signed: boolean
 }
 
+export type ClinicalResult = {
+  id: string
+  label: string
+  value: string
+  unit?: string
+  status: 'normal' | 'watch' | 'critical' | 'pending'
+  source: string
+  updatedAt: number
+}
+
+export type ClinicalDocument = {
+  id: string
+  title: string
+  kind: 'labs' | 'serology' | 'imaging' | 'authorization' | 'attachment'
+  status: 'received' | 'pending' | 'review' | 'signed'
+  source: string
+  updatedAt: number
+}
+
+export type CaseTask = {
+  id: string
+  title: string
+  owner: string
+  dueAt: number
+  status: TaskStatus
+  severity: Exclude<Severity, 'complete'>
+  caseId: number
+  stage: string
+  nextAction: string
+}
+
+export type ClinicalContext = {
+  labs: ClinicalResult[]
+  serology: ClinicalResult[]
+  imaging: ClinicalDocument[]
+  authorization: ClinicalDocument[]
+  attachments: ClinicalDocument[]
+}
+
 export type DonorCase = {
   id: number
   name: string
@@ -96,6 +138,8 @@ export type DonorCase = {
   insights: AthenaInsight[]
   auditChain: AuditEntry[]
   custody: CustodyStop[]
+  tasks: CaseTask[]
+  clinical: ClinicalContext
 }
 
 export type Referral = {
