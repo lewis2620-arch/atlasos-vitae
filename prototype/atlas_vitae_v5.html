@@ -1,0 +1,3346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AtlasOS Vitae</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+
+/* =====================================================
+   AtlasOS Vitae — v3
+   UI/UX System Upgrade Directive applied
+   Focus: Case Detail View (Section 5, TOP PRIORITY)
+   ===================================================== */
+
+/* =====================
+   DESIGN TOKENS (LOCKED)
+   directive §2.2
+===================== */
+
+:root {
+  --bg: #020617;
+  --panel: #0f172a;
+  --panel-2: #111827;
+  --panel-3: #1a2438;          /* derived — for nested surfaces */
+  --border: #1e293b;
+  --border-bright: #2d3a52;    /* derived — for hover/active borders */
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted-bright: #94a3b8;     /* derived — for secondary text on dark */
+
+  --blue: #3b82f6;
+  --blue-soft: rgba(59, 130, 246, 0.12);
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.12);
+  --yellow: #f59e0b;
+  --yellow-soft: rgba(245, 158, 11, 0.12);
+  --green: #10b981;
+  --green-soft: rgba(16, 185, 129, 0.12);
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =====================
+   BASE
+===================== */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+.app { display: flex; height: 100vh; }
+
+/* =====================
+   SIDEBAR
+===================== */
+
+.sidebar {
+  width: 240px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+.logo-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 28px;
+}
+
+.nav-section { margin-bottom: 18px; }
+.nav-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.nav-item {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 2px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted-bright);
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+.nav-item:hover { background: var(--panel); color: var(--text); }
+.nav-item.active {
+  background: var(--blue);
+  color: white;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* =====================
+   MAIN
+===================== */
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: baseline; gap: 14px; }
+.topbar .title {
+  font-weight: 500;
+  font-size: 14px;
+}
+.breadcrumb {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+.breadcrumb .current { color: var(--text); }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.clock { color: var(--muted-bright); font-variant-numeric: tabular-nums; }
+.status {
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.status::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: live 2s infinite;
+}
+@keyframes live {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.workspace {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.workspace h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+.workspace .subhead {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 24px;
+}
+
+/* =====================
+   KPI CARDS
+   directive §7
+===================== */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  transition: transform 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-bright);
+}
+
+.kpi-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.kpi-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 500;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.kpi-trend {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* =====================
+   PANEL — generic surface
+===================== */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.panel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Case row — used on dashboard + board placeholder */
+.case-row {
+  display: grid;
+  grid-template-columns: 70px 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.case-row:hover {
+  background: var(--panel-2);
+  transform: translateX(2px);
+}
+.case-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.case-name { font-weight: 500; font-size: 13px; }
+.case-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.pill-pending   { background: rgba(148,163,184,0.15); color: var(--muted-bright); }
+.pill-rapid     { background: var(--red-soft);    color: #fca5a5; }
+.pill-active    { background: var(--blue-soft);   color: #93c5fd; }
+.pill-completed { background: var(--green-soft);  color: #6ee7b7; }
+
+.risk-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.risk-Low    { background: var(--green-soft);  color: #6ee7b7; }
+.risk-Medium { background: var(--yellow-soft); color: #fcd34d; }
+.risk-High   { background: var(--red-soft);    color: #fca5a5; }
+
+/* =====================
+   CASE DETAIL — directive §5 (TOP PRIORITY)
+   3-zone layout: Summary | Workflow | Athena context
+===================== */
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.detail-name {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.detail-tags { display: flex; gap: 8px; align-items: center; }
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* LEFT zone — Case Summary */
+.summary-field {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.summary-field:last-child { border-bottom: none; }
+.summary-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.summary-value { font-size: 13px; }
+.summary-value.large {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.flag-chip {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin: 2px 4px 2px 0;
+  letter-spacing: 0.06em;
+}
+.flag-chip.red    { background: var(--red-soft);    color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+.flag-chip.yellow { background: var(--yellow-soft); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+.flag-chip.green  { background: var(--green-soft);  color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+
+/* CENTER zone — Workflow Engine */
+.workflow-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stage {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.stage:hover {
+  background: var(--panel-3);
+  border-color: var(--border-bright);
+}
+.stage-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stage-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.stage-name { flex: 1; font-weight: 500; font-size: 13px; }
+.stage-status-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stage.complete { border-color: rgba(16,185,129,0.25); }
+.stage.complete .stage-num { background: var(--green); color: white; border-color: var(--green); }
+.stage.complete .stage-status-text { color: #6ee7b7; }
+
+.stage.current  {
+  border-color: var(--blue);
+  background: linear-gradient(180deg, rgba(59,130,246,0.08), var(--panel-2));
+}
+.stage.current .stage-num { background: var(--blue); color: white; border-color: var(--blue); }
+.stage.current .stage-status-text { color: #93c5fd; }
+.stage.current::after {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue);
+  margin-left: 8px;
+  animation: live 1.6s infinite;
+  vertical-align: middle;
+}
+.stage.current.high-risk { border-color: var(--red); }
+
+.stage.pending .stage-num { opacity: 0.5; }
+.stage.pending .stage-name { color: var(--muted-bright); }
+
+/* Stage expanded body */
+.stage-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: none;
+  animation: slide-down 0.25s var(--ease);
+}
+.stage.expanded .stage-body { display: block; }
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stage-body-section {
+  margin-bottom: 12px;
+}
+.stage-body-section:last-child { margin-bottom: 0; }
+.stage-body-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stage-checklist { list-style: none; padding: 0; margin: 0; font-size: 12px; }
+.stage-checklist li {
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stage-checklist li::before {
+  content: '';
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  flex-shrink: 0;
+}
+.stage-checklist li.done { color: var(--muted-bright); text-decoration: line-through; }
+.stage-checklist li.done::before {
+  background: var(--green); border-color: var(--green);
+  background-image: linear-gradient(45deg, transparent 40%, white 40%, white 60%, transparent 60%);
+}
+.stage-checklist li.missing { color: #fca5a5; }
+.stage-checklist li.missing::before { border-color: var(--red); background: var(--red-soft); }
+
+/* Timeline — directive §5.2 */
+.timeline {
+  position: relative;
+  padding-left: 22px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px; top: 4px; bottom: 4px;
+  width: 1px;
+  background: var(--border);
+}
+.timeline-event {
+  position: relative;
+  padding: 8px 0 8px 4px;
+  font-size: 12px;
+}
+.timeline-event::before {
+  content: '';
+  position: absolute;
+  left: -19px; top: 13px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 2px solid var(--blue);
+}
+.timeline-event.critical::before { border-color: var(--red); }
+.timeline-event.warning::before  { border-color: var(--yellow); }
+.timeline-event.complete::before { border-color: var(--green); background: var(--green); }
+.timeline-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-right: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* RIGHT zone — Athena Case Context (inside detail) */
+.athena-case {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  height: fit-content;
+  position: sticky;
+  top: 0;
+}
+.athena-case-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.athena-case-head h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--text);
+}
+.athena-case-scope {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 14px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  border-left: 2px solid var(--blue);
+}
+
+/* =====================
+   ATHENA INSIGHT — directive §4
+===================== */
+
+.athena {
+  width: 320px;
+  background: var(--panel-2);
+  border-left: 1px solid var(--border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.athena-header {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.athena-feed {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  margin-right: -8px;
+  padding-right: 8px;
+}
+
+.insight {
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: var(--panel);
+  border-left: 3px solid var(--blue);
+  font-size: 13px;
+  transition: transform 0.18s var(--ease);
+  animation: insight-in 0.4s var(--ease);
+}
+.insight:hover { transform: translateX(4px); }
+.insight.critical { border-left-color: var(--red); }
+.insight.warning  { border-left-color: var(--yellow); }
+.insight.info     { border-left-color: var(--blue); }
+.insight.dismissed { opacity: 0.4; }
+.insight-text { line-height: 1.4; }
+.insight-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 8px;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.insight-severity {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+.insight.critical .insight-severity { color: #fca5a5; }
+.insight.warning  .insight-severity { color: #fcd34d; }
+.insight.info     .insight-severity { color: #93c5fd; }
+
+.insight-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.insight-action {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--muted-bright);
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.15s var(--ease);
+  margin-top: 0;
+}
+.insight-action:hover {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--blue);
+}
+
+@keyframes insight-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* =====================
+   BUTTONS
+===================== */
+
+.btn {
+  margin-top: 0;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--blue);
+  color: white;
+  cursor: pointer;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s var(--ease), transform 0.1s var(--ease);
+  letter-spacing: 0.01em;
+}
+.btn:hover { background: #2563eb; }
+.btn:active { transform: translateY(1px); }
+.btn.ghost {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--muted-bright);
+}
+.btn.ghost:hover { background: var(--panel-2); color: var(--text); border-color: var(--blue); }
+.btn.success { background: var(--green); }
+.btn.success:hover { background: #059669; }
+.btn.danger  { background: var(--red); }
+.btn.danger:hover { background: #dc2626; }
+.btn.warning { background: var(--yellow); color: #1a1410; }
+.btn.warning:hover { background: #d97706; }
+
+button.athena-generate {
+  margin-top: auto;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--blue);
+  color: white;
+  cursor: pointer;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s var(--ease);
+}
+button.athena-generate:hover { background: #2563eb; }
+
+/* =====================
+   NOTES / TEXTAREA
+===================== */
+
+.note {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.note-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+  letter-spacing: 0.06em;
+}
+textarea, input, select {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+textarea { resize: vertical; min-height: 60px; }
+textarea:focus, input:focus, select:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+/* =====================
+   ANIMATIONS
+===================== */
+
+.pulse { animation: pulse 1.5s infinite; }
+@keyframes pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* Subtle critical state highlight */
+@keyframes critical-flash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50%      { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
+}
+.flash-critical { animation: critical-flash 1.6s ease-out 2; }
+
+/* =====================================================
+   CASE BOARD — directive 3.1
+   4 columns, click-to-open, click-to-progress
+   ===================================================== */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  min-height: 60vh;
+}
+
+.board-column {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+.board-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.board-column-head h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--muted-bright);
+  font-weight: 500;
+}
+.board-column[data-status="Rapid"] .board-column-head h3 { color: #fca5a5; }
+.board-column[data-status="Completed"] .board-column-head h3 { color: #6ee7b7; }
+.board-column-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--panel-2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: var(--muted-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.board-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--muted);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: transform 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease);
+}
+.board-card:hover {
+  background: var(--panel-3);
+  transform: translateY(-1px);
+  border-color: var(--border-bright);
+}
+.board-card[data-status="Pending"]   { border-left-color: var(--muted); }
+.board-card[data-status="Rapid"]     { border-left-color: var(--red); }
+.board-card[data-status="Active"]    { border-left-color: var(--blue); }
+.board-card[data-status="Completed"] { border-left-color: var(--green); opacity: 0.85; }
+
+/* Rapid + High-risk pulse — directive 3.1 urgency indicators */
+.board-card[data-status="Rapid"],
+.board-card.high-risk[data-status="Active"] {
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25), 0 0 12px rgba(239, 68, 68, 0.15);
+  animation: rapid-pulse 2.4s ease-in-out infinite;
+}
+@keyframes rapid-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25), 0 0 12px rgba(239, 68, 68, 0.15); }
+  50%      { box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5),  0 0 18px rgba(239, 68, 68, 0.25); }
+}
+
+.board-card-name { font-weight: 500; font-size: 13px; margin-bottom: 6px; }
+.board-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+.board-card-progress {
+  display: flex;
+  gap: 3px;
+  margin-top: 8px;
+}
+.board-card-progress-tick {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg);
+}
+.board-card-progress-tick.complete { background: var(--green); }
+.board-card-progress-tick.current  { background: var(--blue); }
+
+.board-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.board-mini-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--muted-bright);
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.15s var(--ease);
+  flex: 1;
+}
+.board-mini-btn:hover {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--blue);
+}
+
+.board-empty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 0;
+  letter-spacing: 0.08em;
+}
+
+/* =====================================================
+   WORKFLOW AGGREGATE — directive 3.3
+   ===================================================== */
+
+.workflow-stage-summary {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.workflow-stage-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  transition: transform 0.18s var(--ease), border-color 0.18s var(--ease);
+  text-align: center;
+}
+.workflow-stage-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-bright);
+}
+.workflow-stage-tile-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+.workflow-stage-tile-name {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.workflow-stage-tile-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--blue);
+}
+.workflow-stage-tile.empty .workflow-stage-tile-count { color: var(--muted); }
+
+.workflow-case-row {
+  display: grid;
+  grid-template-columns: 1fr 200px 100px 80px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease), background 0.15s var(--ease);
+}
+.workflow-case-row:hover {
+  background: var(--panel-3);
+  transform: translateX(2px);
+}
+.workflow-case-name { font-weight: 500; font-size: 13px; }
+.workflow-case-stage {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted-bright);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.workflow-progress-bar {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+}
+.workflow-progress-bar-tick {
+  flex: 1;
+  border-radius: 2px;
+  background: var(--bg);
+}
+.workflow-progress-bar-tick.complete { background: var(--green); }
+.workflow-progress-bar-tick.current  { background: var(--blue); }
+
+/* =====================================================
+   MATCHING — directive 3.4
+   ===================================================== */
+
+.match-card {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: transform 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.match-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-bright);
+}
+.match-score-block {
+  text-align: center;
+  padding: 10px 0;
+  border-right: 1px solid var(--border);
+}
+.match-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.match-score.high     { color: var(--green); }
+.match-score.medium   { color: var(--yellow); }
+.match-score.low      { color: var(--muted-bright); }
+.match-score-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.match-name { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+.match-reason {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-bright);
+  line-height: 1.5;
+}
+.match-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.match-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg);
+  color: var(--muted-bright);
+  border: 1px solid var(--border);
+}
+
+/* =====================================================
+   SCHEDULING — directive 3.5
+   ===================================================== */
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.schedule-row {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  margin-bottom: 4px;
+  transition: background 0.15s var(--ease);
+}
+.schedule-row:hover { background: var(--panel-3); }
+.schedule-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-bright);
+  font-variant-numeric: tabular-nums;
+}
+.schedule-event-name { font-size: 12px; font-weight: 500; }
+.schedule-event-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* =====================================================
+   REPORTS — directive 3.2
+   ===================================================== */
+
+.risk-bar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.risk-bar-row:last-child { border-bottom: none; }
+.risk-bar-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.risk-bar-track {
+  height: 10px;
+  background: var(--bg);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s var(--ease);
+}
+.risk-bar-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 500;
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.status-dist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.status-dist-row:last-child { border-bottom: none; }
+.status-dist-label { flex: 0 0 100px; }
+.status-dist-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.status-dist-fill { height: 100%; background: var(--blue); }
+.status-dist-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================
+   CONNECTOR STATUS ROW — research §"Integration Hub"
+   Reinforces "operations control plane" framing
+   ===================================================== */
+.connector-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.connector-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.18s var(--ease);
+}
+.connector-tile:hover { border-color: var(--border-bright); }
+.connector-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.connector-dot.ok      { background: var(--green); box-shadow: 0 0 8px var(--green); animation: live 2s infinite; }
+.connector-dot.warn    { background: var(--yellow); }
+.connector-dot.err     { background: var(--red); }
+.connector-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+.connector-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* =====================================================
+   FHIR REFERRAL INBOX — research §"FHIR-native referral hub"
+   ===================================================== */
+.referral-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.referral-tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.referral-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--blue);
+}
+.referral-tab:hover { color: var(--text); }
+
+.referral-card {
+  display: grid;
+  grid-template-columns: 1fr 200px 280px auto;
+  gap: 16px;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+  transition: transform 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.referral-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-bright);
+}
+.referral-card.high-risk { border-left-color: var(--red); }
+.referral-card.new {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 0 12px rgba(59, 130, 246, 0.1);
+}
+.referral-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.referral-id {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+.referral-source-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  border: 1px solid var(--border-bright);
+}
+.referral-source-badge.epic   { color: #6ee7b7; border-color: rgba(16,185,129,0.4); background: var(--green-soft); }
+.referral-source-badge.cerner { color: #93c5fd; border-color: rgba(59,130,246,0.4); background: var(--blue-soft); }
+.referral-donor { font-weight: 500; font-size: 14px; }
+.referral-trigger {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-bright);
+  margin-top: 4px;
+}
+.referral-clinical {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.referral-clinical-row { display: flex; justify-content: space-between; }
+.referral-clinical-label { color: var(--muted); letter-spacing: 0.06em; }
+.referral-clinical-value { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.referral-organs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.referral-organ-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  color: var(--muted-bright);
+  border: 1px solid var(--border);
+  letter-spacing: 0.06em;
+}
+
+.fhir-bundle-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted-bright);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.fhir-bundle-preview .fhir-key { color: #93c5fd; }
+.fhir-bundle-preview .fhir-string { color: #6ee7b7; }
+.fhir-bundle-preview .fhir-num { color: #fcd34d; }
+
+/* =====================================================
+   OPTN HUB — research §"OPTN/UNOS automation layer"
+   ===================================================== */
+
+.optn-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.optn-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.optn-tile-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.optn-tile-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.optn-tile-trend {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.optn-tile.warn .optn-tile-value { color: var(--yellow); }
+.optn-tile.ok   .optn-tile-value { color: var(--green); }
+.optn-tile.err  .optn-tile-value { color: var(--red); }
+
+.policy-version-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px 140px 120px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  font-size: 12px;
+  transition: background 0.15s var(--ease);
+}
+.policy-version-row:hover { background: var(--panel-3); }
+.policy-version-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-bright);
+  font-variant-numeric: tabular-nums;
+}
+.policy-version-name { font-weight: 500; }
+.policy-version-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.06em;
+}
+.policy-status-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+  font-weight: 500;
+}
+.policy-status-pill.active   { background: var(--green-soft);  color: #6ee7b7; }
+.policy-status-pill.pending  { background: var(--yellow-soft); color: #fcd34d; }
+.policy-status-pill.archived { background: rgba(148,163,184,0.15); color: var(--muted-bright); }
+
+.recon-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 140px auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--yellow);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+}
+.recon-row.err { border-left-color: var(--red); }
+.recon-row.ok  { border-left-color: var(--green); }
+.recon-name { font-size: 12px; font-weight: 500; }
+.recon-detail {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.recon-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================
+   AUDIT LEDGER — research §"Immutable audit ledger"
+   Hash-linked, exportable, WORM-style display
+   ===================================================== */
+
+.audit-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+.audit-search {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.audit-row {
+  display: grid;
+  grid-template-columns: 50px 100px 140px 1fr 100px 200px;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  font-size: 12px;
+  transition: background 0.15s var(--ease);
+}
+.audit-row:hover { background: var(--panel-3); }
+.audit-row.critical { border-left: 3px solid var(--red); }
+.audit-row.warning  { border-left: 3px solid var(--yellow); }
+.audit-row.complete { border-left: 3px solid var(--green); }
+.audit-row.info     { border-left: 3px solid var(--blue); }
+.audit-seq {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.audit-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-bright);
+  font-variant-numeric: tabular-nums;
+}
+.audit-actor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+}
+.audit-action { font-size: 12px; }
+.audit-case-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--blue);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+.audit-case-link:hover { text-decoration: underline; }
+.audit-hash {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.audit-hash-link {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+/* =====================================================
+   CHAIN OF CUSTODY — research §"Mobile chain-of-custody"
+   ===================================================== */
+
+.custody-chain {
+  position: relative;
+  padding-left: 24px;
+}
+.custody-chain::before {
+  content: '';
+  position: absolute;
+  left: 8px; top: 4px; bottom: 4px;
+  width: 1px;
+  background: var(--border);
+}
+.custody-stop {
+  position: relative;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  margin-left: 4px;
+}
+.custody-stop::before {
+  content: '';
+  position: absolute;
+  left: -22px; top: 18px;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--muted);
+}
+.custody-stop.complete::before { background: var(--green); border-color: var(--green); }
+.custody-stop.current::before  { background: var(--blue); border-color: var(--blue); animation: live 1.6s infinite; }
+.custody-stop.pending::before  { opacity: 0.5; }
+
+.custody-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.custody-stage-name { font-weight: 500; font-size: 13px; }
+.custody-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted-bright);
+  font-variant-numeric: tabular-nums;
+}
+.custody-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+}
+.custody-meta-cell { display: flex; flex-direction: column; gap: 2px; }
+.custody-meta-label {
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.custody-meta-value { color: var(--text); }
+.custody-meta-value.hash { color: var(--muted-bright); }
+.custody-signed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--green);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.custody-signed::before {
+  content: '✓';
+  font-weight: 700;
+}
+
+/* Cross-org context row on Case Detail */
+.cross-org-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.cross-org-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cross-org-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.cross-org-value { font-size: 12px; font-weight: 500; }
+.cross-org-value .ehr-badge { font-size: 9px; padding: 1px 6px; vertical-align: middle; margin-left: 4px; }
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- ─── Sidebar ─── -->
+  <div class="sidebar">
+    <div class="logo">AtlasOS</div>
+    <div class="logo-sub">VITAE / TRANSPLANT</div>
+
+    <div class="nav-section">
+      <div class="nav-title">Operations</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">Dashboard</div>
+      <div class="nav-item"        data-page="board"     onclick="navigate('board')">Case Board</div>
+      <div class="nav-item"        data-page="intake"    onclick="navigate('intake')">Referrals</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Clinical</div>
+      <div class="nav-item" data-page="workflow" onclick="navigate('workflow')">Workflow</div>
+      <div class="nav-item" data-page="matching" onclick="navigate('matching')">Matching</div>
+      <div class="nav-item" data-page="schedule" onclick="navigate('schedule')">Scheduling</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Intel</div>
+      <div class="nav-item" data-page="reports"   onclick="navigate('reports')">Reports</div>
+      <div class="nav-item" data-page="optn"      onclick="navigate('optn')">OPTN Hub</div>
+      <div class="nav-item" data-page="audit"     onclick="navigate('audit')">Audit Ledger</div>
+    </div>
+
+    <div class="sidebar-footer">v0.5 · prototype</div>
+  </div>
+
+  <!-- ─── Main ─── -->
+  <div class="main">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="title">Vitae Command</div>
+        <div class="breadcrumb" id="breadcrumb"><span class="current">Dashboard</span></div>
+      </div>
+      <div class="topbar-right">
+        <div class="clock mono" id="clock">--:--:--</div>
+        <div class="status">SYSTEM ONLINE</div>
+      </div>
+    </div>
+
+    <div class="workspace" id="workspace"></div>
+
+  </div>
+
+  <!-- ─── Athena (global) ─── -->
+  <div class="athena">
+    <div class="athena-header">
+      <span>ATHENA AI</span>
+      <span id="athenaScope" class="mono" style="font-size:9px;">GLOBAL</span>
+    </div>
+    <div class="athena-feed" id="athenaFeed"></div>
+    <button class="athena-generate" onclick="generateInsight()">Generate Insight</button>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================
+   DATA MODEL — extended for strategic positioning v5
+   Cross-org context, EHR source, organ type, custody chain
+   ===================================================== */
+
+const STAGES = [
+  { name: "Intake",        checklist: ["Demographics", "Consent", "Initial labs"] },
+  { name: "Evaluation",    checklist: ["HLA panel", "Imaging", "Cardiac workup"] },
+  { name: "Authorization", checklist: ["Next-of-kin signature", "DCD/DBD declaration"] },
+  { name: "Allocation",    checklist: ["Match list run", "Recipient confirmation", "OPO notified"] },
+  { name: "Recovery",      checklist: ["OR scheduled", "Recovery team mobilized", "Preservation prep"] },
+  { name: "Transport",     checklist: ["Cold ischemic timer", "Transport leg confirmed", "Recipient hospital ready"] }
+];
+
+// Pseudo-hash for audit ledger (display only — visual proof of immutability concept)
+function pseudoHash(seed) {
+  const chars = "0123456789abcdef";
+  let h = "";
+  let n = (seed || Date.now()) >>> 0;
+  for (let i = 0; i < 12; i++) {
+    n = (n * 1664525 + 1013904223) >>> 0;
+    h += chars[n & 0xf];
+  }
+  return h;
+}
+
+function buildCase(name, risk, status, currentStageIdx, ageHours, flags, ctx) {
+  const now = Date.now();
+  const createdAt = now - ageHours * 3600 * 1000;
+  ctx = ctx || {};
+  return {
+    id: now + Math.floor(Math.random() * 9999),
+    name, risk, status, createdAt, flags: flags || [],
+    currentStageIdx,
+    // Strategic context — research §"Cross-org visibility"
+    hospital:  ctx.hospital   || "Memorial Regional",
+    center:    ctx.center     || "—",
+    organType: ctx.organType  || "Kidney",
+    ehrSource: ctx.ehrSource  || "Epic",
+    donorType: ctx.donorType  || "DBD",
+    workflowSteps: STAGES.map((s, i) => ({
+      name: s.name,
+      status: i < currentStageIdx ? "complete" : i === currentStageIdx ? "current" : "pending",
+      checklist: s.checklist.map((item, j) => ({
+        text: item,
+        done: i < currentStageIdx || (i === currentStageIdx && j === 0),
+        missing: i === currentStageIdx && j === 1 && risk === "High"
+      })),
+      completedAt: i < currentStageIdx ? now - ((currentStageIdx - i) * 30 * 60 * 1000) : null
+    })),
+    events: [],
+    notes: [],
+    insights: [],
+    // Audit ledger — research §"Immutable audit/event ledger"
+    auditChain: [],
+    // Chain of custody — research §"Mobile chain-of-custody"
+    custody: []
+  };
+}
+
+const data = {
+  cases: [],
+  referrals: [],
+  activeCaseId: null,
+  currentPage: "dashboard"
+};
+
+// Seed cases with strategic context
+data.cases.push(buildCase("Donor A — 47M", "Low",    "Pending", 1, 1.5, [],
+  { hospital: "Memorial Regional",   center: "—",                    organType: "Kidney",     ehrSource: "Epic",   donorType: "DBD" }));
+data.cases.push(buildCase("Donor B — 32F", "High",   "Rapid",   3, 3.2, ["Cold ischemic warning", "DCD"],
+  { hospital: "St. Vincent's Med",   center: "Stanford Transplant",  organType: "Liver",      ehrSource: "Epic",   donorType: "DCD" }));
+data.cases.push(buildCase("Donor C — 58M", "Medium", "Active",  2, 2.0, ["DBD"],
+  { hospital: "Banner University",   center: "Mayo Clinic Phoenix",  organType: "Kidney",     ehrSource: "Cerner", donorType: "DBD" }));
+data.cases.push(buildCase("Donor D — 41F", "High",   "Rapid",   4, 4.1, ["Authorization pending"],
+  { hospital: "HonorHealth Scottsdale", center: "UCSF Transplant",   organType: "Heart+Lung", ehrSource: "Epic",   donorType: "DBD" }));
+data.cases.push(buildCase("Donor E — 29M", "Low",    "Active",  5, 0.8, ["DBD", "Multi-organ"],
+  { hospital: "Memorial Regional",   center: "Mayo Clinic Phoenix",  organType: "Multi-organ",ehrSource: "Cerner", donorType: "DBD" }));
+
+// Seed events for each case
+data.cases.forEach(c => {
+  const start = c.createdAt;
+  c.events.push({ t: start,                        text: "Case opened — intake initiated",       severity: "info" });
+  if (c.currentStageIdx >= 1) c.events.push({ t: start + 25*60*1000,  text: "Intake complete · labs received",        severity: "complete" });
+  if (c.currentStageIdx >= 2) c.events.push({ t: start + 55*60*1000,  text: "Evaluation underway",                    severity: "info" });
+  if (c.currentStageIdx >= 3) c.events.push({ t: start + 90*60*1000,  text: "Authorization confirmed",                severity: "complete" });
+  if (c.currentStageIdx >= 4) c.events.push({ t: start + 130*60*1000, text: "Allocation triggered · match list run",  severity: "info" });
+  if (c.currentStageIdx >= 5) c.events.push({ t: start + 175*60*1000, text: "Recovery team mobilized",                severity: "complete" });
+  if (c.risk === "High")      c.events.push({ t: Date.now() - 12*60*1000, text: "Cold ischemic threshold approaching",  severity: "critical" });
+});
+
+// Seed audit chain — research §"Immutable audit ledger"
+// Each entry is hash-linked to the previous (display only, but reads as a real ledger)
+data.cases.forEach(c => {
+  let prevHash = "0".repeat(12);
+  c.events.slice().sort((a,b) => a.t - b.t).forEach((ev, i) => {
+    const seed = (ev.t ^ (c.id + i)) >>> 0;
+    const hash = pseudoHash(seed);
+    c.auditChain.push({
+      seq: i + 1,
+      t: ev.t,
+      actor: i === 0 ? "system" : (i % 2 === 0 ? "Coordinator" : "OPO Specialist"),
+      action: ev.text,
+      severity: ev.severity || "info",
+      prevHash,
+      hash
+    });
+    prevHash = hash;
+  });
+});
+
+// Seed custody chain for cases past Allocation — research §"Mobile chain-of-custody"
+data.cases.filter(c => c.currentStageIdx >= 4).forEach(c => {
+  const start = c.createdAt + 130*60*1000;
+  const stops = [
+    { stage: "Sealed at OPO",       location: "Donor Hospital · OR Suite 3",  custodian: "Recovery Team — Dr. Patel",   status: "complete" },
+    { stage: "Packaging verified",  location: "Donor Hospital · Recovery Bay", custodian: "Lead Coord — M. Hayashi",     status: "complete" },
+    { stage: "Ground transport",    location: "→ PHX Sky Harbor",              custodian: "Courier #4471",               status: c.currentStageIdx >= 5 ? "complete" : "current" },
+    { stage: "Air leg",             location: "PHX → SFO",                     custodian: "Air Carrier · ATC verified",  status: c.currentStageIdx >= 5 ? "current" : "pending" },
+    { stage: "Recipient handoff",   location: c.center + " · Receiving Bay",   custodian: "Receiving Team",              status: "pending" }
+  ];
+  stops.forEach((s, i) => {
+    const seed = (start + i * 1500000) >>> 0;
+    c.custody.push({
+      ...s,
+      t: s.status === "pending" ? null : start + i * 1500000,
+      tempC: s.status === "pending" ? null : (4.0 + Math.random() * 0.4).toFixed(1),
+      hash: s.status === "pending" ? null : pseudoHash(seed),
+      signed: s.status === "complete"
+    });
+  });
+});
+
+// Seed inbound FHIR referrals — research §"FHIR-native referral hub"
+// These are referrals NOT YET converted to cases — the inbox state
+data.referrals.push({
+  id: "REF-9821",
+  receivedAt: Date.now() - 4 * 60 * 1000,
+  hospital: "Banner Desert Med",
+  ehr: "Epic",
+  fhirVersion: "R4",
+  donorName: "Donor (M, ~52)",
+  triggerType: "Vented · Mechanical ventilation > 24h",
+  glasgowComa: 3,
+  riskHint: "High",
+  organCandidates: ["Liver", "Kidney"],
+  bundleSize: "47 resources",
+  status: "new"
+});
+data.referrals.push({
+  id: "REF-9819",
+  receivedAt: Date.now() - 18 * 60 * 1000,
+  hospital: "Phoenix Children's",
+  ehr: "Cerner",
+  fhirVersion: "R4",
+  donorName: "Donor (F, ~28)",
+  triggerType: "Non-vented · Cardiac arrest",
+  glasgowComa: 4,
+  riskHint: "Medium",
+  organCandidates: ["Kidney", "Cornea"],
+  bundleSize: "32 resources",
+  status: "new"
+});
+data.referrals.push({
+  id: "REF-9815",
+  receivedAt: Date.now() - 47 * 60 * 1000,
+  hospital: "Mayo Clinic Phoenix",
+  ehr: "Epic",
+  fhirVersion: "R4",
+  donorName: "Donor (M, ~38)",
+  triggerType: "Vented · Severe TBI",
+  glasgowComa: 3,
+  riskHint: "High",
+  organCandidates: ["Heart", "Lung", "Liver", "Kidney (×2)"],
+  bundleSize: "61 resources",
+  status: "triaged"
+});
+
+// Seed Athena insights — case-scoped
+data.cases[0].insights.push({
+  text: "Initial workup complete. Ready for evaluation.",
+  severity: "info",
+  t: Date.now() - 8 * 60 * 1000,
+  actions: ["acknowledge"]
+});
+data.cases[1].insights.push({
+  text: "Cold ischemic window approaching threshold. Coordinator action required within 10 min.",
+  severity: "critical",
+  t: Date.now() - 4 * 60 * 1000,
+  actions: ["take_action", "escalate"]
+});
+data.cases[1].insights.push({
+  text: "Match list available. 3 recipients ranked above 85.",
+  severity: "info",
+  t: Date.now() - 18 * 60 * 1000,
+  actions: ["view_matches"]
+});
+data.cases[2].insights.push({
+  text: "HLA panel result delayed. Expected lab return within 30 min.",
+  severity: "warning",
+  t: Date.now() - 22 * 60 * 1000,
+  actions: ["acknowledge"]
+});
+data.cases[3].insights.push({
+  text: "Authorization paperwork pending family signature.",
+  severity: "warning",
+  t: Date.now() - 31 * 60 * 1000,
+  actions: ["take_action"]
+});
+data.cases[3].insights.push({
+  text: "High-risk profile — recommend dual-attending oversight.",
+  severity: "critical",
+  t: Date.now() - 6 * 60 * 1000,
+  actions: ["acknowledge", "escalate"]
+});
+
+
+/* =====================================================
+   NAVIGATION
+   ===================================================== */
+function navigate(page, ctx) {
+  data.currentPage = page;
+
+  document.querySelectorAll(".nav-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.page === page);
+  });
+
+  if (page !== "case-detail") {
+    data.activeCaseId = null;
+  }
+
+  const ws = document.getElementById("workspace");
+  const breadcrumb = document.getElementById("breadcrumb");
+
+  switch (page) {
+    case "dashboard":     breadcrumb.innerHTML = `<span class="current">Dashboard</span>`;            renderDashboard(ws);  break;
+    case "board":         breadcrumb.innerHTML = `<span class="current">Case Board</span>`;           renderBoard(ws);      break;
+    case "intake":        breadcrumb.innerHTML = `<span class="current">Donor Intake</span>`;         renderIntake(ws);     break;
+    case "workflow":      breadcrumb.innerHTML = `<span class="current">Workflow</span>`;             renderWorkflowAggregate(ws); break;
+    case "matching":      breadcrumb.innerHTML = `<span class="current">Matching</span>`;             renderMatching(ws);   break;
+    case "schedule":      breadcrumb.innerHTML = `<span class="current">Scheduling</span>`;           renderSchedule(ws);   break;
+    case "reports":       breadcrumb.innerHTML = `<span class="current">Reports</span>`;              renderReports(ws);    break;
+    case "optn":          breadcrumb.innerHTML = `<span class="current">OPTN Hub</span>`;             renderOptnHub(ws);    break;
+    case "audit":         breadcrumb.innerHTML = `<span class="current">Audit Ledger</span>`;         renderAuditLedger(ws); break;
+    case "case-detail":
+      const c = data.cases.find(x => x.id === ctx);
+      breadcrumb.innerHTML = `<span onclick="navigate('dashboard')" style="cursor:pointer">Dashboard</span> · <span class="current">${c ? escapeHtml(c.name) : 'Case'}</span>`;
+      renderCaseDetail(ws, ctx);
+      break;
+  }
+
+  refreshAthenaFeed();
+}
+
+/* =====================================================
+   DASHBOARD
+   ===================================================== */
+function renderDashboard(ws) {
+  const total     = data.cases.length;
+  const completed = data.cases.filter(c => c.status === "Completed").length;
+  const highRisk  = data.cases.filter(c => c.risk === "High" && c.status !== "Completed").length;
+  const newReferrals = data.referrals.filter(r => r.status === "new").length;
+  const elapsedAvg = total > 0
+    ? data.cases.reduce((s,c) => s + (Date.now() - c.createdAt), 0) / total
+    : 0;
+
+  const recent = [...data.cases].sort((a,b) => b.createdAt - a.createdAt);
+
+  ws.innerHTML = `
+    <h2>Operational Overview</h2>
+    <div class="subhead">LIVE · ${data.cases.length} ACTIVE CASES · ${newReferrals} NEW REFERRALS</div>
+
+    <div class="connector-row">
+      <div class="connector-tile">
+        <div class="connector-dot ok"></div>
+        <div>
+          <div class="connector-name">Epic · Connection Hub</div>
+          <div class="connector-meta">3 hospitals · 38s ago</div>
+        </div>
+      </div>
+      <div class="connector-tile">
+        <div class="connector-dot ok"></div>
+        <div>
+          <div class="connector-name">Cerner · FHIR</div>
+          <div class="connector-meta">2 hospitals · 1m ago</div>
+        </div>
+      </div>
+      <div class="connector-tile">
+        <div class="connector-dot warn"></div>
+        <div>
+          <div class="connector-name">UNOS / OPTN API</div>
+          <div class="connector-meta">4 in recon queue</div>
+        </div>
+      </div>
+      <div class="connector-tile">
+        <div class="connector-dot ok"></div>
+        <div>
+          <div class="connector-name">HL7 Lab Feeds</div>
+          <div class="connector-meta">5 channels · live</div>
+        </div>
+      </div>
+      <div class="connector-tile">
+        <div class="connector-dot ok"></div>
+        <div>
+          <div class="connector-name">Audit Ledger</div>
+          <div class="connector-meta">chain valid · ${data.cases.reduce((s,c) => s + c.auditChain.length, 0)} events</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="card">
+        <div class="kpi-label">Total Cases</div>
+        <div class="kpi-value">${total}</div>
+        <div class="kpi-trend">across all stages</div>
+      </div>
+
+      <div class="card">
+        <div class="kpi-label">Completed</div>
+        <div class="kpi-value" style="color: var(--green)">${completed}</div>
+        <div class="kpi-trend">today</div>
+      </div>
+
+      <div class="card">
+        <div class="kpi-label">Avg Time to Action</div>
+        <div class="kpi-value">${formatElapsed(elapsedAvg)}</div>
+        <div class="kpi-trend">across cohort</div>
+      </div>
+
+      <div class="card ${highRisk > 0 ? 'pulse' : ''}">
+        <div class="kpi-label">High Risk Active</div>
+        <div class="kpi-value" style="color: var(--red)">${highRisk}</div>
+        <div class="kpi-trend">requires attention</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Active Cases</span>
+        <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">click to open detail</span>
+      </div>
+      ${recent.map(c => caseRowHtml(c)).join("")}
+    </div>
+  `;
+}
+
+function caseRowHtml(c) {
+  const elapsed = formatElapsed(Date.now() - c.createdAt);
+  const ehrCls = (c.ehrSource || "").toLowerCase();
+  return `
+    <div class="case-row" onclick="navigate('case-detail', ${c.id})">
+      <div class="case-time mono">${elapsed}</div>
+      <div>
+        <div class="case-name">${escapeHtml(c.name)} <span class="mono" style="font-size:10px;color:var(--muted);margin-left:4px">${escapeHtml(c.organType)} · ${escapeHtml(c.donorType)}</span></div>
+        <div class="case-meta">${escapeHtml(c.hospital)} → ${escapeHtml(c.center)} · Stage ${c.currentStageIdx + 1}/${STAGES.length} · ${escapeHtml(STAGES[c.currentStageIdx].name)}</div>
+      </div>
+      ${c.ehrSource && c.ehrSource !== "Manual"
+        ? `<span class="referral-source-badge ${ehrCls}" style="margin-right:8px">${escapeHtml(c.ehrSource)}</span>`
+        : `<span class="referral-source-badge" style="margin-right:8px;color:var(--muted)">MANUAL</span>`}
+      <span class="risk-tag risk-${c.risk}">${c.risk}</span>
+      <span class="pill pill-${c.status.toLowerCase()}">${c.status}</span>
+    </div>
+  `;
+}
+
+/* =====================================================
+   CASE DETAIL — directive §5 (TOP PRIORITY)
+   3-zone layout
+   ===================================================== */
+function renderCaseDetail(ws, id) {
+  const c = data.cases.find(x => x.id === id);
+  if (!c) { ws.innerHTML = "<p>Case not found.</p>"; return; }
+
+  data.activeCaseId = id;
+
+  ws.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="detail-id">CASE #${c.id} · OPENED ${formatDateTime(c.createdAt)}</div>
+        <div class="detail-name">${escapeHtml(c.name)}</div>
+        <div class="detail-tags">
+          <span class="pill pill-${c.status.toLowerCase()}">${c.status}</span>
+          <span class="risk-tag risk-${c.risk}">${c.risk} RISK</span>
+          <span class="mono" style="font-size:11px;color:var(--muted)">elapsed ${formatElapsed(Date.now() - c.createdAt)}</span>
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn ghost" onclick="navigate('dashboard')">← Back</button>
+        <button class="btn warning" onclick="addEvent(${c.id}, 'Coordinator note added', 'info'); openNoteDialog(${c.id})">Add Note</button>
+        <button class="btn" onclick="triggerAllocation(${c.id})">Trigger Allocation</button>
+        <button class="btn danger" onclick="escalateCase(${c.id})">Escalate</button>
+        ${c.status !== "Completed"
+          ? `<button class="btn success" onclick="advanceWorkflow(${c.id})">Advance Workflow →</button>`
+          : ""}
+      </div>
+    </div>
+
+    <div class="cross-org-bar">
+      <div class="cross-org-cell">
+        <div class="cross-org-label">Donor Hospital</div>
+        <div class="cross-org-value">${escapeHtml(c.hospital)}<span class="referral-source-badge ehr-badge ${c.ehrSource ? c.ehrSource.toLowerCase() : ''}">${escapeHtml(c.ehrSource || 'Manual')}</span></div>
+      </div>
+      <div class="cross-org-cell">
+        <div class="cross-org-label">Transplant Center</div>
+        <div class="cross-org-value">${escapeHtml(c.center)}</div>
+      </div>
+      <div class="cross-org-cell">
+        <div class="cross-org-label">Organ / Donor Type</div>
+        <div class="cross-org-value">${escapeHtml(c.organType)} · ${escapeHtml(c.donorType)}</div>
+      </div>
+      <div class="cross-org-cell">
+        <div class="cross-org-label">Audit Chain</div>
+        <div class="cross-org-value mono" style="font-family:'JetBrains Mono',monospace;font-size:11px"><span style="color:var(--green)">●</span> ${c.auditChain.length} events · valid</div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+
+      <!-- LEFT: Case Summary -->
+      <div class="panel">
+        <div class="panel-title">Case Summary</div>
+
+        <div class="summary-field">
+          <div class="summary-label">Donor</div>
+          <div class="summary-value">${escapeHtml(c.name)}</div>
+        </div>
+
+        <div class="summary-field">
+          <div class="summary-label">Risk Level</div>
+          <div class="summary-value"><span class="risk-tag risk-${c.risk}">${c.risk}</span></div>
+        </div>
+
+        <div class="summary-field">
+          <div class="summary-label">Current Status</div>
+          <div class="summary-value"><span class="pill pill-${c.status.toLowerCase()}">${c.status}</span></div>
+        </div>
+
+        <div class="summary-field">
+          <div class="summary-label">Time Since Intake</div>
+          <div class="summary-value large">${formatElapsed(Date.now() - c.createdAt)}</div>
+        </div>
+
+        <div class="summary-field">
+          <div class="summary-label">Current Stage</div>
+          <div class="summary-value">${escapeHtml(STAGES[c.currentStageIdx].name)} <span class="mono" style="color:var(--muted);font-size:11px">(${c.currentStageIdx + 1}/${STAGES.length})</span></div>
+        </div>
+
+        <div class="summary-field">
+          <div class="summary-label">Key Flags</div>
+          <div class="summary-value" style="margin-top:6px">
+            ${c.flags.length === 0
+              ? `<span class="mono" style="font-size:11px;color:var(--muted)">none</span>`
+              : c.flags.map(f => {
+                  const cls = /warning|pending|approaching/i.test(f) ? "yellow"
+                            : /risk|critical|cold/i.test(f) ? "red"
+                            : "green";
+                  return `<span class="flag-chip ${cls}">${escapeHtml(f)}</span>`;
+                }).join("")}
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="panel-title">Timeline</div>
+          <div class="timeline">
+            ${[...c.events].sort((a,b) => b.t - a.t).map(ev => `
+              <div class="timeline-event ${ev.severity || ''}">
+                <span class="timeline-time">${formatTime(ev.t)}</span>${escapeHtml(ev.text)}
+              </div>
+            `).join("")}
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div class="panel-title">Notes</div>
+          ${c.notes.length === 0
+            ? `<div class="mono" style="font-size:11px;color:var(--muted);padding:4px 0">No notes yet.</div>`
+            : c.notes.map(n => `
+                <div class="note">
+                  <div>${escapeHtml(n.text)}</div>
+                  <div class="note-meta">${escapeHtml(n.author)} · ${formatDateTime(n.t)}</div>
+                </div>
+              `).join("")}
+          <textarea id="newNote" placeholder="Add a coordinator note..."></textarea>
+          <button class="btn ghost" onclick="addNote(${c.id})">Save Note</button>
+        </div>
+      </div>
+
+      <!-- CENTER: Workflow Engine -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>Workflow Engine</span>
+          <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">click stage to expand</span>
+        </div>
+        <div class="workflow-stages" id="workflowStages">
+          ${c.workflowSteps.map((s, i) => stageHtml(c, s, i)).join("")}
+        </div>
+      </div>
+
+      <!-- RIGHT: Athena (Case Context) -->
+      <div class="athena-case">
+        <div class="athena-case-head">
+          <h3>Athena · Case Context</h3>
+        </div>
+        <div class="athena-case-scope">SCOPED: ${escapeHtml(c.name).toUpperCase()}</div>
+        <div id="athenaCaseFeed">
+          ${renderCaseInsights(c)}
+        </div>
+        <button class="btn ghost" style="width:100%;margin-top:8px" onclick="generateCaseInsight(${c.id})">Generate Case Insight</button>
+      </div>
+
+    </div>
+  `;
+}
+
+function stageHtml(c, s, i) {
+  const isHighRiskCurrent = s.status === "current" && c.risk === "High";
+  return `
+    <div class="stage ${s.status} ${isHighRiskCurrent ? 'high-risk' : ''}" data-stage="${i}" onclick="toggleStage(${c.id}, ${i})">
+      <div class="stage-head">
+        <div class="stage-num">${s.status === "complete" ? "✓" : i + 1}</div>
+        <div class="stage-name">${escapeHtml(s.name)}</div>
+        <div class="stage-status-text">
+          ${s.status === "complete" ? "Complete" : s.status === "current" ? "In Progress" : "Pending"}
+        </div>
+      </div>
+      <div class="stage-body">
+        <div class="stage-body-section">
+          <div class="stage-body-label">Checklist</div>
+          <ul class="stage-checklist">
+            ${s.checklist.map(item => `
+              <li class="${item.done ? 'done' : item.missing ? 'missing' : ''}">${escapeHtml(item.text)}${item.missing ? ' <span class="mono" style="font-size:10px;color:var(--red);margin-left:4px">missing</span>' : ''}</li>
+            `).join("")}
+          </ul>
+        </div>
+        ${s.status !== "pending" ? `
+          <div class="stage-body-section">
+            <div class="stage-body-label">Actions</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${s.status === "current" ? `
+                <button class="btn" onclick="event.stopPropagation();completeStage(${c.id}, ${i})">Mark Complete</button>
+                <button class="btn ghost" onclick="event.stopPropagation();flagStageIssue(${c.id}, ${i})">Flag Issue</button>
+              ` : `
+                <span class="mono" style="font-size:11px;color:var(--muted)">Completed ${formatTime(s.completedAt)}</span>
+              `}
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function toggleStage(caseId, stageIdx) {
+  const stage = document.querySelector(`.stage[data-stage="${stageIdx}"]`);
+  if (stage) stage.classList.toggle("expanded");
+}
+
+/* =====================================================
+   CASE ACTIONS — directive §5.3 + §9
+   ===================================================== */
+function advanceWorkflow(caseId) {
+  const c = data.cases.find(x => x.id === caseId);
+  if (!c) return;
+  if (c.currentStageIdx >= STAGES.length - 1) {
+    c.status = "Completed";
+    addEvent(caseId, "Case completed — all stages closed", "complete");
+    addCaseInsight(c, "Case completed. All workflow stages closed.", "info");
+    renderCaseDetail(document.getElementById("workspace"), caseId);
+    return;
+  }
+  const oldName = STAGES[c.currentStageIdx].name;
+  c.workflowSteps[c.currentStageIdx].status = "complete";
+  c.workflowSteps[c.currentStageIdx].completedAt = Date.now();
+  c.currentStageIdx += 1;
+  c.workflowSteps[c.currentStageIdx].status = "current";
+  const newName = STAGES[c.currentStageIdx].name;
+  addEvent(caseId, `Stage advanced: ${oldName} → ${newName}`, "info");
+  addCaseInsight(c, stageHint(c.currentStageIdx, c.risk),
+    c.risk === "High" && c.currentStageIdx >= 3 ? "critical" : "info");
+  renderCaseDetail(document.getElementById("workspace"), caseId);
+}
+
+function completeStage(caseId, stageIdx) {
+  const c = data.cases.find(x => x.id === caseId);
+  if (!c || stageIdx !== c.currentStageIdx) return;
+  advanceWorkflow(caseId);
+}
+
+function flagStageIssue(caseId, stageIdx) {
+  const c = data.cases.find(x => x.id === caseId);
+  if (!c) return;
+  addEvent(caseId, `Issue flagged at stage: ${STAGES[stageIdx].name}`, "warning");
+  addCaseInsight(c, `Issue flagged on ${STAGES[stageIdx].name}. Review checklist for missing items.`, "warning");
+  renderCaseDetail(document.getElementById("workspace"), caseId);
+}
+
+function triggerAllocation(caseId) {
+  const c = data.cases.find(x => x.id === caseId);
+  if (!c) return;
+  addEvent(caseId, "Allocation triggered manually", "info");
+  addCaseInsight(c, "Allocation request sent. Match list expected within 5 minutes.", "info");
+  renderCaseDetail(document.getElementById("workspace"), caseId);
+}
+
+function escalateCase(caseId) {
+  const c = data.cases.find(x => x.id === caseId);
+  if (!c) return;
+  c.flags.push("Escalated");
+  addEvent(caseId, "Case escalated to medical director", "critical");
+  addCaseInsight(c, "Case escalated. Medical director notified. Awaiting acknowledgment.", "critical");
+  renderCaseDetail(document.getElementById("workspace"), caseId);
+}
+
+function addNote(caseId) {
+  const c = data.cases.find(x => x.id === caseId);
+  const txt = (document.getElementById("newNote")?.value || "").trim();
+  if (!txt) return;
+  c.notes.unshift({ author: "Coordinator", text: txt, t: Date.now() });
+  addEvent(caseId, "Note added by coordinator", "info");
+  renderCaseDetail(document.getElementById("workspace"), caseId);
+}
+
+function openNoteDialog(caseId) {
+  // focus the note textarea — directive §3.4 minimal friction
+  setTimeout(() => {
+    const ta = document.getElementById("newNote");
+    if (ta) { ta.focus(); ta.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  }, 60);
+}
+
+function addEvent(caseId, text, severity) {
+  const c = data.cases.find(x => x.id === caseId);
+  if (!c) return;
+  const t = Date.now();
+  c.events.unshift({ t, text, severity: severity || "info" });
+  // Also write to immutable audit chain — research §"Audit ledger"
+  const prevHash = c.auditChain.length > 0 ? c.auditChain[c.auditChain.length - 1].hash : "0".repeat(12);
+  c.auditChain.push({
+    seq: c.auditChain.length + 1,
+    t,
+    actor: "Coordinator",
+    action: text,
+    severity: severity || "info",
+    prevHash,
+    hash: pseudoHash((t ^ c.id ^ c.auditChain.length) >>> 0)
+  });
+}
+
+function stageHint(idx, risk) {
+  const hints = [
+    "Confirm initial donor demographics and consent status.",
+    "Begin clinical evaluation. Lab and imaging panels expected.",
+    "Authorization required from next-of-kin.",
+    "Allocation algorithm engaged. Match list under review.",
+    "Recovery team mobilized. OR readiness required.",
+    "Transport in motion. Monitor cold ischemic time."
+  ];
+  let base = hints[idx] || "Stage progression noted.";
+  if (risk === "High" && idx >= 3) base += " HIGH-RISK case — verify clinical thresholds.";
+  return base;
+}
+
+
+/* =====================================================
+   ATHENA — directive §4
+   severity: critical | warning | info
+   each insight: text + timestamp + actions
+   ===================================================== */
+
+function renderCaseInsights(c) {
+  if (c.insights.length === 0) {
+    return `<div class="mono" style="font-size:11px;color:var(--muted);padding:8px 0">No insights yet.</div>`;
+  }
+  return [...c.insights].sort((a,b) => b.t - a.t).map(i => insightHtml(i, c.id)).join("");
+}
+
+function insightHtml(i, caseId) {
+  const sev = i.severity || "info";
+  const actions = (i.actions || []).map(a => {
+    const labels = {
+      acknowledge: "Acknowledge",
+      take_action: "Take Action",
+      view_case:   "View Case",
+      view_matches:"View Matches",
+      escalate:    "Escalate"
+    };
+    return `<button class="insight-action" onclick="event.stopPropagation();handleInsightAction('${a}', ${caseId || 'null'}, '${i.t}')">${labels[a] || a}</button>`;
+  }).join("");
+
+  return `
+    <div class="insight ${sev}" data-t="${i.t}" ${i.dismissed ? 'class="insight dismissed"' : ''}>
+      <div class="insight-text">${escapeHtml(i.text)}</div>
+      <div class="insight-meta">
+        <span class="insight-severity">${sev}</span>
+        <span>·</span>
+        <span>${formatTime(i.t)}</span>
+        ${caseId && data.activeCaseId !== caseId ? `<span>· ${escapeHtml(getCase(caseId)?.name || '')}</span>` : ''}
+      </div>
+      ${actions ? `<div class="insight-actions">${actions}</div>` : ''}
+    </div>
+  `;
+}
+
+function handleInsightAction(action, caseId, ts) {
+  const c = getCase(caseId);
+  if (!c && action !== "acknowledge") return;
+  switch (action) {
+    case "acknowledge":
+      // mark insight dismissed
+      const insight = c ? c.insights.find(i => String(i.t) === String(ts))
+                        : data.cases.flatMap(x => x.insights).find(i => String(i.t) === String(ts));
+      if (insight) insight.dismissed = true;
+      break;
+    case "take_action":
+      if (c) advanceWorkflow(c.id);
+      break;
+    case "view_case":
+    case "view_matches":
+      if (c) navigate("case-detail", c.id);
+      break;
+    case "escalate":
+      if (c) escalateCase(c.id);
+      break;
+  }
+  refreshAthenaFeed();
+  if (data.currentPage === "case-detail" && data.activeCaseId) {
+    const cc = getCase(data.activeCaseId);
+    document.getElementById("athenaCaseFeed").innerHTML = renderCaseInsights(cc);
+  }
+}
+
+function getCase(id) { return data.cases.find(x => x.id === id); }
+
+function addCaseInsight(c, text, severity) {
+  const insight = {
+    text,
+    severity: severity || (c.risk === "High" ? "critical" : c.risk === "Medium" ? "warning" : "info"),
+    t: Date.now(),
+    actions: severity === "critical" ? ["take_action", "acknowledge"] : ["acknowledge"]
+  };
+  c.insights.unshift(insight);
+}
+
+function refreshAthenaFeed() {
+  const feed = document.getElementById("athenaFeed");
+  const scope = document.getElementById("athenaScope");
+  if (!feed) return;
+
+  let pool;
+  if (data.activeCaseId) {
+    const c = getCase(data.activeCaseId);
+    pool = (c?.insights || []).map(i => ({ ...i, _caseId: c.id }));
+    scope.textContent = "CASE-SCOPED";
+  } else {
+    pool = data.cases.flatMap(c => c.insights.map(i => ({ ...i, _caseId: c.id })));
+    scope.textContent = "GLOBAL";
+  }
+
+  pool.sort((a,b) => b.t - a.t);
+
+  if (pool.length === 0) {
+    feed.innerHTML = `<div class="mono" style="font-size:11px;color:var(--muted);padding:8px">No insights yet.</div>`;
+    return;
+  }
+
+  feed.innerHTML = pool.slice(0, 10).map(i => insightHtml(i, i._caseId)).join("");
+}
+
+function generateInsight() {
+  const pool = [
+    { text: "High-risk donor requires immediate lab verification.",         severity: "critical", actions: ["take_action", "acknowledge"] },
+    { text: "Case delay may impact viability by 15%.",                       severity: "warning",  actions: ["acknowledge"] },
+    { text: "Recommend prioritizing Rapid cases within 10 minutes.",         severity: "warning",  actions: ["view_case", "acknowledge"] },
+    { text: "Allocation queue stable. No bottlenecks detected.",             severity: "info",     actions: ["acknowledge"] },
+    { text: "Cold ischemic time approaching threshold.",                     severity: "critical", actions: ["take_action", "escalate"] },
+    { text: "OR suite availability sufficient for next 4 hours.",            severity: "info",     actions: ["acknowledge"] }
+  ];
+  const m = pool[Math.floor(Math.random() * pool.length)];
+  // attach to a relevant case
+  const target = data.activeCaseId
+    ? getCase(data.activeCaseId)
+    : (data.cases.find(c => c.risk === "High") || data.cases[0]);
+  target.insights.unshift({ ...m, t: Date.now() });
+  refreshAthenaFeed();
+  if (data.currentPage === "case-detail" && data.activeCaseId === target.id) {
+    document.getElementById("athenaCaseFeed").innerHTML = renderCaseInsights(target);
+  }
+}
+
+function generateCaseInsight(caseId) {
+  data.activeCaseId = caseId;
+  generateInsight();
+}
+
+
+/* =====================================================
+   CASE BOARD — directive 3.1
+   ===================================================== */
+function renderBoard(ws) {
+  const statuses = ["Pending", "Rapid", "Active", "Completed"];
+
+  ws.innerHTML = `
+    <h2>Case Board</h2>
+    <div class="subhead">LIVE OPERATIONAL VIEW · CLICK ANY CARD TO OPEN DETAIL</div>
+    <div class="board" id="board">
+      ${statuses.map(s => renderBoardColumn(s)).join("")}
+    </div>
+  `;
+}
+
+function renderBoardColumn(status) {
+  const cases = data.cases.filter(c => c.status === status);
+  return `
+    <div class="board-column" data-status="${status}">
+      <div class="board-column-head">
+        <h3>${status}</h3>
+        <span class="board-column-count">${cases.length}</span>
+      </div>
+      <div class="board-column-body">
+        ${cases.length === 0
+          ? `<div class="board-empty">— empty —</div>`
+          : cases.map(c => renderBoardCard(c)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderBoardCard(c) {
+  const isHighRisk = c.risk === "High";
+  return `
+    <div class="board-card ${isHighRisk ? 'high-risk' : ''}"
+         data-status="${c.status}"
+         onclick="navigate('case-detail', ${c.id})">
+      <div class="board-card-name">${escapeHtml(c.name)}</div>
+      <div class="board-card-meta">
+        <span class="risk-tag risk-${c.risk}">${c.risk}</span>
+        <span>Stage ${c.currentStageIdx + 1}/${STAGES.length}</span>
+      </div>
+      <div class="board-card-progress" title="${escapeHtml(STAGES[c.currentStageIdx].name)}">
+        ${c.workflowSteps.map(s => `
+          <div class="board-card-progress-tick ${s.status === 'complete' ? 'complete' : s.status === 'current' ? 'current' : ''}"></div>
+        `).join("")}
+      </div>
+      ${c.status !== "Completed" ? `
+        <div class="board-card-actions">
+          <button class="board-mini-btn"
+                  onclick="event.stopPropagation();progressBoardCase(${c.id})"
+                  title="Move to next status">
+            ${nextStatusLabel(c.status)}
+          </button>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function nextStatusLabel(status) {
+  const map = { "Pending": "→ Rapid", "Rapid": "→ Active", "Active": "→ Completed" };
+  return map[status] || "—";
+}
+
+function progressBoardCase(id) {
+  const c = data.cases.find(x => x.id === id);
+  if (!c) return;
+  const flow = { "Pending": "Rapid", "Rapid": "Active", "Active": "Completed" };
+  const next = flow[c.status];
+  if (!next) return;
+  const old = c.status;
+  c.status = next;
+  addEvent(id, `Status: ${old} → ${next}`, next === "Completed" ? "complete" : "info");
+  addCaseInsight(c, `Status updated to ${next} via Case Board.`,
+    next === "Completed" ? "info" : (c.risk === "High" ? "warning" : "info"));
+  renderBoard(document.getElementById("workspace"));
+  refreshAthenaFeed();
+}
+
+
+/* =====================================================
+   WORKFLOW AGGREGATE — directive 3.3
+   ===================================================== */
+function renderWorkflowAggregate(ws) {
+  const active = data.cases.filter(c => c.status !== "Completed");
+  const stageCounts = STAGES.map((_, i) => active.filter(c => c.currentStageIdx === i).length);
+
+  ws.innerHTML = `
+    <h2>Workflow Engine</h2>
+    <div class="subhead">STAGE DISTRIBUTION ACROSS ${active.length} ACTIVE CASES</div>
+
+    <div class="workflow-stage-summary">
+      ${STAGES.map((s, i) => `
+        <div class="workflow-stage-tile ${stageCounts[i] === 0 ? 'empty' : ''}">
+          <div class="workflow-stage-tile-num">STAGE ${i + 1}</div>
+          <div class="workflow-stage-tile-name">${escapeHtml(s.name)}</div>
+          <div class="workflow-stage-tile-count">${stageCounts[i]}</div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Active Cases</span>
+        <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">click to open detail</span>
+      </div>
+      ${active.length === 0
+        ? `<div class="mono" style="color:var(--muted);font-size:11px;padding:8px 0">No active cases.</div>`
+        : active.map(c => `
+            <div class="workflow-case-row" onclick="navigate('case-detail', ${c.id})">
+              <div>
+                <div class="workflow-case-name">${escapeHtml(c.name)}</div>
+                <div class="workflow-case-stage">STAGE ${c.currentStageIdx + 1} · ${escapeHtml(STAGES[c.currentStageIdx].name)}</div>
+              </div>
+              <div class="workflow-progress-bar">
+                ${c.workflowSteps.map(s => `
+                  <div class="workflow-progress-bar-tick ${s.status === 'complete' ? 'complete' : s.status === 'current' ? 'current' : ''}"></div>
+                `).join("")}
+              </div>
+              <span class="risk-tag risk-${c.risk}">${c.risk}</span>
+              <span class="pill pill-${c.status.toLowerCase()}">${c.status}</span>
+            </div>
+          `).join("")}
+    </div>
+  `;
+}
+
+
+/* =====================================================
+   MATCHING — directive 3.4
+   ===================================================== */
+function renderMatching(ws) {
+  const recipients = [
+    { name: "Recipient X — UNOS 4471", score: 94, region: "within",   tags: ["HLA 6/6", "CPRA 12%", "Age 41"], reason: "Optimal HLA cross-match. CPRA low. Same region — minimal cold ischemic risk." },
+    { name: "Recipient Y — UNOS 5128", score: 88, region: "within",   tags: ["HLA 5/6", "CPRA 38%", "Age 53"], reason: "Strong match with one mismatch. Moderate sensitization. Same region transport." },
+    { name: "Recipient Z — UNOS 3344", score: 81, region: "adjacent", tags: ["HLA 5/6", "CPRA 4%",  "Age 36"], reason: "Strong HLA fit, minimal sensitization. Adjacent region — air transport required." },
+    { name: "Recipient W — UNOS 6092", score: 76, region: "adjacent", tags: ["HLA 4/6", "CPRA 22%", "Age 48"], reason: "Acceptable match. Backup candidate if primary recipients decline." },
+    { name: "Recipient V — UNOS 2117", score: 68, region: "distant",  tags: ["HLA 4/6", "CPRA 51%", "Age 59"], reason: "Lower priority. High sensitization. Distant region adds significant transport time." }
+  ];
+
+  ws.innerHTML = `
+    <h2>Match Explorer</h2>
+    <div class="subhead">RANKED BY ATHENA · ${recipients.length} CANDIDATES</div>
+
+    <div class="panel" style="margin-bottom:14px;padding:14px">
+      <div style="display:flex;gap:14px;align-items:center;font-size:12px">
+        <div class="mono" style="font-size:10px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase">Match score legend</div>
+        <span class="mono" style="font-size:11px"><span style="color:var(--green)">●</span> 85+ optimal</span>
+        <span class="mono" style="font-size:11px"><span style="color:var(--yellow)">●</span> 70–84 acceptable</span>
+        <span class="mono" style="font-size:11px"><span style="color:var(--muted-bright)">●</span> &lt; 70 backup</span>
+      </div>
+    </div>
+
+    ${recipients.map(r => {
+      const cls = r.score >= 85 ? "high" : r.score >= 70 ? "medium" : "low";
+      return `
+        <div class="match-card">
+          <div class="match-score-block">
+            <div class="match-score ${cls}">${r.score}</div>
+            <div class="match-score-label">Score</div>
+          </div>
+          <div>
+            <div class="match-name">${escapeHtml(r.name)}</div>
+            <div class="match-reason">${escapeHtml(r.reason)}</div>
+            <div class="match-tags">
+              ${r.tags.map(t => `<span class="match-tag">${escapeHtml(t)}</span>`).join("")}
+              <span class="match-tag">${escapeHtml(r.region)} region</span>
+            </div>
+          </div>
+          <button class="btn ghost">View</button>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+
+/* =====================================================
+   SCHEDULING + CHAIN OF CUSTODY
+   research §"Mobile chain-of-custody"
+   This is the iTransplant differentiator — operations-first,
+   not collaboration-first.
+   ===================================================== */
+function renderSchedule(ws) {
+  const orBookings = [
+    { time: "14:00", suite: "Suite 3", event: "Recovery — Donor B (32F, High)", status: "Rapid" },
+    { time: "16:30", suite: "Suite 5", event: "Recovery — Donor D (41F, High)", status: "Rapid" },
+    { time: "19:00", suite: "Suite 1", event: "Available",                      status: "Completed" },
+    { time: "21:15", suite: "Suite 2", event: "Recovery — Donor C (58M, Med)",  status: "Active" }
+  ];
+  const transport = [
+    { time: "15:20", mode: "Ground", route: "Donor B → Stanford Transplant",    status: "Rapid" },
+    { time: "17:45", mode: "Air",    route: "Donor E → Mayo Clinic Phoenix",    status: "Active" },
+    { time: "18:30", mode: "Ground", route: "Recovery team → OPO suite",        status: "Pending" },
+    { time: "22:00", mode: "Air",    route: "Donor C → recipient hospital",     status: "Active" }
+  ];
+
+  // Surface custody chains across all cases that have one
+  const casesWithCustody = data.cases.filter(c => c.custody && c.custody.length > 0);
+
+  ws.innerHTML = `
+    <h2>Scheduling &amp; Chain of Custody</h2>
+    <div class="subhead">OR SUITES · TRANSPORT LEGS · MOBILE CHAIN-OF-CUSTODY · IMMUTABLE TIMESTAMPS</div>
+
+    <div class="schedule-grid" style="margin-bottom:18px">
+      <div class="panel">
+        <div class="panel-title">
+          <span>OR Suites</span>
+          <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">${orBookings.length} bookings</span>
+        </div>
+        ${orBookings.map(b => `
+          <div class="schedule-row">
+            <div class="schedule-time">${b.time}</div>
+            <div>
+              <div class="schedule-event-name">${escapeHtml(b.suite)} · ${escapeHtml(b.event)}</div>
+            </div>
+            <span class="pill pill-${b.status.toLowerCase()}">${b.status === 'Completed' ? 'Open' : b.status}</span>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span>Transport Legs</span>
+          <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">${transport.length} legs</span>
+        </div>
+        ${transport.map(t => `
+          <div class="schedule-row">
+            <div class="schedule-time">${t.time}</div>
+            <div>
+              <div class="schedule-event-name">${escapeHtml(t.mode)} · ${escapeHtml(t.route)}</div>
+            </div>
+            <span class="pill pill-${t.status.toLowerCase()}">${t.status}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    ${casesWithCustody.length === 0 ? "" : `
+      <div class="panel">
+        <div class="panel-title">
+          <span>Active Chains of Custody</span>
+          <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">timestamped · location-stamped · cryptographically signed</span>
+        </div>
+
+        ${casesWithCustody.map(c => `
+          <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer" onclick="navigate('case-detail', ${c.id})">
+              <div>
+                <div style="font-weight:500;font-size:13px">${escapeHtml(c.name)} · ${escapeHtml(c.organType)}</div>
+                <div class="mono" style="font-size:11px;color:var(--muted);margin-top:2px">${escapeHtml(c.hospital)} → ${escapeHtml(c.center)}</div>
+              </div>
+              <span class="risk-tag risk-${c.risk}">${c.risk}</span>
+            </div>
+
+            <div class="custody-chain">
+              ${c.custody.map(s => `
+                <div class="custody-stop ${s.status}">
+                  <div class="custody-head">
+                    <div class="custody-stage-name">${escapeHtml(s.stage)}</div>
+                    <div class="custody-time">${s.t ? formatDateTime(s.t) : "— pending —"}</div>
+                  </div>
+                  <div class="mono" style="font-size:11px;color:var(--muted-bright)">${escapeHtml(s.location)}</div>
+                  ${s.status !== "pending" ? `
+                    <div class="custody-meta">
+                      <div class="custody-meta-cell">
+                        <div class="custody-meta-label">Custodian</div>
+                        <div class="custody-meta-value">${escapeHtml(s.custodian)}</div>
+                      </div>
+                      <div class="custody-meta-cell">
+                        <div class="custody-meta-label">Temp °C</div>
+                        <div class="custody-meta-value">${escapeHtml(s.tempC)}</div>
+                      </div>
+                      <div class="custody-meta-cell">
+                        <div class="custody-meta-label">Hash</div>
+                        <div class="custody-meta-value hash">${escapeHtml(s.hash)}</div>
+                      </div>
+                      <div class="custody-meta-cell">
+                        <div class="custody-meta-label">Signed</div>
+                        <div class="custody-meta-value">${s.signed ? '<span class="custody-signed">verified</span>' : '<span class="mono" style="color:var(--muted)">pending</span>'}</div>
+                      </div>
+                    </div>
+                  ` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `}
+  `;
+}
+
+
+/* =====================================================
+   REPORTS — directive 3.2
+   ===================================================== */
+function renderReports(ws) {
+  const total      = data.cases.length;
+  const completed  = data.cases.filter(c => c.status === "Completed").length;
+  const highRisk   = data.cases.filter(c => c.risk === "High" && c.status !== "Completed").length;
+  const elapsedAvg = total > 0
+    ? data.cases.reduce((s,c) => s + (Date.now() - c.createdAt), 0) / total
+    : 0;
+
+  const riskDist = {
+    Low:    data.cases.filter(c => c.risk === "Low").length,
+    Medium: data.cases.filter(c => c.risk === "Medium").length,
+    High:   data.cases.filter(c => c.risk === "High").length
+  };
+  const maxRisk = Math.max(1, ...Object.values(riskDist));
+
+  const statusDist = {
+    Pending:   data.cases.filter(c => c.status === "Pending").length,
+    Rapid:     data.cases.filter(c => c.status === "Rapid").length,
+    Active:    data.cases.filter(c => c.status === "Active").length,
+    Completed: data.cases.filter(c => c.status === "Completed").length
+  };
+  const maxStatus = Math.max(1, ...Object.values(statusDist));
+
+  ws.innerHTML = `
+    <h2>Reports</h2>
+    <div class="subhead">LIVE KPIs · OPERATIONAL ANALYTICS</div>
+
+    <div class="kpis">
+      <div class="card">
+        <div class="kpi-label">Total Cases</div>
+        <div class="kpi-value">${total}</div>
+        <div class="kpi-trend">across all stages</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Completed</div>
+        <div class="kpi-value" style="color: var(--green)">${completed}</div>
+        <div class="kpi-trend">${total > 0 ? Math.round((completed/total)*100) : 0}% completion rate</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Avg Time to Action</div>
+        <div class="kpi-value">${formatElapsed(elapsedAvg)}</div>
+        <div class="kpi-trend">across cohort</div>
+      </div>
+      <div class="card ${highRisk > 0 ? 'pulse' : ''}">
+        <div class="kpi-label">High Risk Active</div>
+        <div class="kpi-value" style="color: var(--red)">${highRisk}</div>
+        <div class="kpi-trend">requires attention</div>
+      </div>
+    </div>
+
+    <div class="reports-grid">
+      <div class="panel">
+        <div class="panel-title">Risk Distribution</div>
+        ${["Low","Medium","High"].map(r => {
+          const color = r === "High" ? "var(--red)" : r === "Medium" ? "var(--yellow)" : "var(--green)";
+          return `
+            <div class="risk-bar-row">
+              <div class="risk-bar-label">${r}</div>
+              <div class="risk-bar-track">
+                <div class="risk-bar-fill" style="width:${(riskDist[r]/maxRisk)*100}%;background:${color}"></div>
+              </div>
+              <div class="risk-bar-count">${riskDist[r]}</div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Status Distribution</div>
+        ${["Pending","Rapid","Active","Completed"].map(s => {
+          const color = s === "Rapid"     ? "var(--red)"
+                      : s === "Active"    ? "var(--blue)"
+                      : s === "Completed" ? "var(--green)"
+                                          : "var(--muted-bright)";
+          return `
+            <div class="status-dist-row">
+              <div class="status-dist-label"><span class="pill pill-${s.toLowerCase()}">${s}</span></div>
+              <div class="status-dist-bar">
+                <div class="status-dist-fill" style="width:${(statusDist[s]/maxStatus)*100}%;background:${color}"></div>
+              </div>
+              <div class="status-dist-count">${statusDist[s]}</div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+
+/* =====================================================
+   INTAKE — directive 4.2 (preserved from v3)
+   ===================================================== */
+/* =====================================================
+   FHIR REFERRAL INBOX — research §"FHIR-native referral hub"
+   Replaces the thin "Intake" form. Inbox of referrals with
+   structured EHR-sourced clinical context.
+   ===================================================== */
+function renderIntake(ws) {
+  const newCount     = data.referrals.filter(r => r.status === "new").length;
+  const triagedCount = data.referrals.filter(r => r.status === "triaged").length;
+
+  ws.innerHTML = `
+    <h2>Referrals · FHIR Inbox</h2>
+    <div class="subhead">EHR-SOURCED REFERRAL TRIGGERS · STRUCTURED CLINICAL CONTEXT INCLUDED</div>
+
+    <div class="referral-tabs">
+      <div class="referral-tab active" data-tab="new"     onclick="switchReferralTab(event,'new')">New <span class="mono" style="opacity:0.7">${newCount}</span></div>
+      <div class="referral-tab"        data-tab="triaged" onclick="switchReferralTab(event,'triaged')">Triaged <span class="mono" style="opacity:0.7">${triagedCount}</span></div>
+      <div class="referral-tab"        data-tab="manual"  onclick="switchReferralTab(event,'manual')">Manual Entry</div>
+    </div>
+
+    <div id="referralTabBody"></div>
+  `;
+  renderReferralTab("new");
+}
+
+function switchReferralTab(ev, tab) {
+  document.querySelectorAll(".referral-tab").forEach(el => el.classList.remove("active"));
+  ev.currentTarget.classList.add("active");
+  renderReferralTab(tab);
+}
+
+function renderReferralTab(tab) {
+  const body = document.getElementById("referralTabBody");
+  if (!body) return;
+
+  if (tab === "manual") {
+    body.innerHTML = `
+      <div class="panel" style="max-width:520px">
+        <div class="panel-title">Manual Case Entry</div>
+        <div class="mono" style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+          Use only when no FHIR referral is available. Manual cases lack EHR provenance and require additional review.
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="kpi-label" style="margin-bottom:6px">Donor Name / ID</div>
+          <input id="newName" placeholder="e.g. Donor F — 36M"/>
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="kpi-label" style="margin-bottom:6px">Donor Hospital</div>
+          <input id="newHospital" placeholder="e.g. Memorial Regional"/>
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="kpi-label" style="margin-bottom:6px">Risk</div>
+          <select id="newRisk"><option>Low</option><option>Medium</option><option>High</option></select>
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="kpi-label" style="margin-bottom:6px">Initial Status</div>
+          <select id="newStatus"><option>Pending</option><option>Rapid</option><option>Active</option></select>
+        </div>
+        <button class="btn" onclick="createCase()">Create Case</button>
+      </div>
+    `;
+    return;
+  }
+
+  const list = data.referrals.filter(r => r.status === tab);
+  if (list.length === 0) {
+    body.innerHTML = `<div class="panel" style="text-align:center;padding:40px"><div class="mono" style="color:var(--muted);font-size:11px">No ${tab} referrals.</div></div>`;
+    return;
+  }
+
+  body.innerHTML = list.map(r => referralCardHtml(r)).join("");
+}
+
+function referralCardHtml(r) {
+  const isHigh = r.riskHint === "High";
+  const ehrCls = r.ehr.toLowerCase();
+  return `
+    <div class="referral-card ${isHigh ? 'high-risk' : ''} ${r.status}">
+      <div>
+        <div class="referral-card-head">
+          <span class="referral-id">${escapeHtml(r.id)}</span>
+          <span class="referral-source-badge ${ehrCls}">${escapeHtml(r.ehr)} · FHIR ${escapeHtml(r.fhirVersion)}</span>
+          <span class="risk-tag risk-${r.riskHint}">${r.riskHint}</span>
+        </div>
+        <div class="referral-donor">${escapeHtml(r.donorName)} · ${escapeHtml(r.hospital)}</div>
+        <div class="referral-trigger">${escapeHtml(r.triggerType)}</div>
+        <div class="referral-organs" style="margin-top:8px">
+          ${r.organCandidates.map(o => `<span class="referral-organ-chip">${escapeHtml(o)}</span>`).join("")}
+        </div>
+      </div>
+
+      <div class="referral-clinical">
+        <div class="referral-clinical-row">
+          <span class="referral-clinical-label">RECEIVED</span>
+          <span class="referral-clinical-value">${formatElapsed(Date.now() - r.receivedAt)} ago</span>
+        </div>
+        <div class="referral-clinical-row">
+          <span class="referral-clinical-label">GCS</span>
+          <span class="referral-clinical-value">${r.glasgowComa}</span>
+        </div>
+        <div class="referral-clinical-row">
+          <span class="referral-clinical-label">BUNDLE</span>
+          <span class="referral-clinical-value">${escapeHtml(r.bundleSize)}</span>
+        </div>
+      </div>
+
+      <div class="fhir-bundle-preview">
+<span class="fhir-key">resourceType</span>: <span class="fhir-string">"Bundle"</span><br>
+<span class="fhir-key">type</span>: <span class="fhir-string">"transaction"</span><br>
+<span class="fhir-key">entry</span>: [<br>
+&nbsp;&nbsp;<span class="fhir-key">Patient</span>, <span class="fhir-key">Observation</span>×<span class="fhir-num">${r.glasgowComa + 18}</span>,<br>
+&nbsp;&nbsp;<span class="fhir-key">Condition</span>×<span class="fhir-num">4</span>, <span class="fhir-key">DiagnosticReport</span>×<span class="fhir-num">7</span><br>
+]
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
+        <button class="btn" onclick="acceptReferral('${escapeHtml(r.id)}')">Open as Case →</button>
+        <button class="btn ghost" onclick="dismissReferral('${escapeHtml(r.id)}')">Dismiss</button>
+      </div>
+    </div>
+  `;
+}
+
+function acceptReferral(refId) {
+  const r = data.referrals.find(x => x.id === refId);
+  if (!r) return;
+
+  // Create case with EHR-sourced context already populated
+  const c = buildCase(
+    r.donorName.replace(/Donor \(/, "Donor — ").replace(/\)$/, ""),
+    r.riskHint,
+    r.riskHint === "High" ? "Rapid" : "Pending",
+    1,  // skip Intake — referral provided structured intake
+    0,
+    [`Auto-imported from ${r.ehr}`, "FHIR R4 bundle"],
+    {
+      hospital:  r.hospital,
+      center:    "—",
+      organType: r.organCandidates[0],
+      ehrSource: r.ehr,
+      donorType: r.triggerType.includes("Cardiac arrest") ? "DCD" : "DBD"
+    }
+  );
+
+  // Mark Intake stage complete since it was filled by referral
+  c.workflowSteps[0].status = "complete";
+  c.workflowSteps[0].completedAt = Date.now();
+  c.workflowSteps[0].checklist.forEach(item => item.done = true);
+  c.currentStageIdx = 1;
+  c.workflowSteps[1].status = "current";
+
+  // Seed audit chain
+  let prevHash = "0".repeat(12);
+  const seedHash = pseudoHash((r.receivedAt ^ c.id) >>> 0);
+  c.auditChain.push({
+    seq: 1,
+    t: r.receivedAt,
+    actor: `${r.ehr} EHR`,
+    action: `FHIR Bundle received · ${r.bundleSize}`,
+    severity: "info",
+    prevHash,
+    hash: seedHash
+  });
+  prevHash = seedHash;
+  const openHash = pseudoHash((Date.now() ^ c.id) >>> 0);
+  c.auditChain.push({
+    seq: 2,
+    t: Date.now(),
+    actor: "Coordinator",
+    action: `Referral ${r.id} accepted · case opened`,
+    severity: "info",
+    prevHash,
+    hash: openHash
+  });
+
+  c.events.push({ t: r.receivedAt, text: `FHIR bundle received from ${r.ehr} · ${r.bundleSize}`, severity: "info" });
+  c.events.push({ t: Date.now(),    text: `Referral ${r.id} accepted · case opened`, severity: "complete" });
+
+  addCaseInsight(c,
+    `Auto-imported from ${r.ehr}. Intake stage complete. Athena assessing ${r.riskHint.toLowerCase()}-risk profile across ${r.organCandidates.length} candidate organs.`,
+    r.riskHint === "High" ? "critical" : "info"
+  );
+
+  data.cases.push(c);
+  r.status = "accepted";
+  navigate("case-detail", c.id);
+}
+
+function dismissReferral(refId) {
+  const r = data.referrals.find(x => x.id === refId);
+  if (!r) return;
+  r.status = "dismissed";
+  renderReferralTab("new");
+}
+
+function createCase() {
+  const name = (document.getElementById("newName").value || "").trim()
+    || `Donor ${String.fromCharCode(65 + data.cases.length)} — 40M`;
+  const hospital = (document.getElementById("newHospital")?.value || "").trim() || "Manual Entry";
+  const risk = document.getElementById("newRisk").value;
+  const status = document.getElementById("newStatus").value;
+  const c = buildCase(name, risk, status, 0, 0, ["Manual entry — no EHR provenance"],
+    { hospital, ehrSource: "Manual" });
+  c.events.push({ t: Date.now(), text: "Case opened — manual entry", severity: "info" });
+  c.auditChain.push({
+    seq: 1, t: Date.now(),
+    actor: "Coordinator",
+    action: "Manual case creation",
+    severity: "info",
+    prevHash: "0".repeat(12),
+    hash: pseudoHash((Date.now() ^ c.id) >>> 0)
+  });
+  addCaseInsight(c, `Manual case opened. Athena assessing ${risk.toLowerCase()}-risk profile. Note: no EHR provenance.`, risk === "High" ? "critical" : "warning");
+  data.cases.push(c);
+  navigate("case-detail", c.id);
+}
+
+
+/* =====================================================
+   OPTN HUB — research §"OPTN/UNOS automation layer"
+   Policy-versioned mappings, reconciliation queue,
+   connector status. Direct attack on iTransplant's
+   "manual XML upload" pain.
+   ===================================================== */
+function renderOptnHub(ws) {
+  const policyMappings = [
+    { version: "v2026.04",  name: "DDR — Deceased Donor Registration",  status: "active",   updated: "Apr 12, 2026", fields: 142, autoMapped: 138 },
+    { version: "v2026.04",  name: "DNR — Death Notification Record",    status: "active",   updated: "Apr 12, 2026", fields: 38,  autoMapped: 38 },
+    { version: "v2026.04",  name: "Lung Donor Data — extended panel",   status: "active",   updated: "Apr 12, 2026", fields: 64,  autoMapped: 61 },
+    { version: "v2026.07-rc", name: "DDR — Q3 expanded fields",          status: "pending",  updated: "Apr 22, 2026", fields: 156, autoMapped: 149 },
+    { version: "v2025.12",  name: "DDR — Q4 2025",                      status: "archived", updated: "Dec 03, 2025", fields: 138, autoMapped: 134 },
+    { version: "v2025.10",  name: "Tissue / Cornea bundle",             status: "active",   updated: "Oct 19, 2025", fields: 47,  autoMapped: 47 }
+  ];
+
+  const reconQueue = [
+    { name: "DDR submission · Donor B — UNOS 4471", detail: "Field mismatch · `cause_of_death.detail` not in v2026.04 enum",                count: 1, severity: "warn" },
+    { name: "Attachment sync · Donor D",            detail: "Pathology report awaiting hash confirmation",                                  count: 2, severity: "warn" },
+    { name: "DNR backfill · Donor E",               detail: "Auto-reconciled — no action needed",                                           count: 0, severity: "ok"   },
+    { name: "Lab feed · St. Vincent's Med",         detail: "HL7 v2 channel timeout · 14 minutes ago · auto-retry 3/5",                    count: 1, severity: "err"  }
+  ];
+
+  const submissions = {
+    today:    { sent: 23, accepted: 21, pending: 2,  failed: 0 },
+    thisWeek: { sent: 161, accepted: 158, pending: 2, failed: 1 }
+  };
+
+  ws.innerHTML = `
+    <h2>OPTN Hub</h2>
+    <div class="subhead">UNOS / OPTN AUTOMATION · POLICY-VERSIONED MAPPINGS · RECONCILIATION</div>
+
+    <div class="optn-status-grid">
+      <div class="optn-tile ok">
+        <div class="optn-tile-label">Submitted Today</div>
+        <div class="optn-tile-value">${submissions.today.sent}</div>
+        <div class="optn-tile-trend">${submissions.today.accepted} accepted · ${submissions.today.pending} pending</div>
+      </div>
+      <div class="optn-tile">
+        <div class="optn-tile-label">Auto-Map Coverage</div>
+        <div class="optn-tile-value">97.2%</div>
+        <div class="optn-tile-trend">485 / 499 fields machine-mapped</div>
+      </div>
+      <div class="optn-tile warn">
+        <div class="optn-tile-label">Reconciliation Queue</div>
+        <div class="optn-tile-value">4</div>
+        <div class="optn-tile-trend">awaiting attention</div>
+      </div>
+      <div class="optn-tile ok">
+        <div class="optn-tile-label">UNOS API Health</div>
+        <div class="optn-tile-value">OK</div>
+        <div class="optn-tile-trend">last sync 38s ago</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-title">
+        <span>Policy-Versioned Field Mappings</span>
+        <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">no-code field updates · zero remap projects</span>
+      </div>
+      ${policyMappings.map(p => `
+        <div class="policy-version-row">
+          <div class="policy-version-tag">${escapeHtml(p.version)}</div>
+          <div>
+            <div class="policy-version-name">${escapeHtml(p.name)}</div>
+            <div class="policy-version-meta">${p.autoMapped}/${p.fields} fields auto-mapped · updated ${escapeHtml(p.updated)}</div>
+          </div>
+          <div class="mono" style="font-size:11px;color:var(--muted-bright);text-align:right">
+            ${Math.round((p.autoMapped/p.fields)*100)}%
+          </div>
+          <div class="policy-status-pill ${p.status}">${p.status}</div>
+          <button class="btn ghost" style="font-size:10px;padding:5px 10px">View Mapping</button>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Reconciliation Queue</span>
+        <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">field mismatches · sync failures · manual review</span>
+      </div>
+      ${reconQueue.map(r => `
+        <div class="recon-row ${r.severity}">
+          <div>
+            <div class="recon-name">${escapeHtml(r.name)}</div>
+            <div class="recon-detail">${escapeHtml(r.detail)}</div>
+          </div>
+          <div class="recon-count">${r.count}</div>
+          <div class="mono" style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${r.severity === 'err' ? '#fca5a5' : r.severity === 'warn' ? '#fcd34d' : '#6ee7b7'}">
+            ${r.severity === 'err' ? 'Action Needed' : r.severity === 'warn' ? 'Review' : 'Resolved'}
+          </div>
+          <button class="btn ${r.severity === 'err' ? 'danger' : 'ghost'}" style="font-size:10px;padding:5px 10px">${r.count > 0 ? 'Resolve' : 'View'}</button>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+
+/* =====================================================
+   AUDIT LEDGER — research §"Immutable audit ledger"
+   Hash-linked event history across all cases. Exportable.
+   Reads as a regulated audit artifact.
+   ===================================================== */
+function renderAuditLedger(ws) {
+  // Aggregate all audit entries from all cases into a single chronological feed
+  const allEntries = data.cases.flatMap(c =>
+    c.auditChain.map(a => ({ ...a, caseId: c.id, caseName: c.name }))
+  ).sort((a, b) => b.t - a.t);
+
+  ws.innerHTML = `
+    <h2>Audit Ledger</h2>
+    <div class="subhead">IMMUTABLE EVENT HISTORY · HASH-LINKED · SHA-256 EQUIVALENT</div>
+
+    <div class="audit-controls">
+      <input class="audit-search" id="auditSearch" placeholder="Filter by case, actor, action..." oninput="filterAuditLedger()"/>
+      <button class="btn ghost" onclick="alert('Export → CSV / JSON / PDF')">Export</button>
+      <button class="btn ghost" onclick="alert('Verify → Re-compute and validate hash chain')">Verify Chain</button>
+    </div>
+
+    <div class="optn-status-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="optn-tile">
+        <div class="optn-tile-label">Total Events</div>
+        <div class="optn-tile-value">${allEntries.length}</div>
+        <div class="optn-tile-trend">across ${data.cases.length} cases</div>
+      </div>
+      <div class="optn-tile ok">
+        <div class="optn-tile-label">Chain Integrity</div>
+        <div class="optn-tile-value">VALID</div>
+        <div class="optn-tile-trend">last verified just now</div>
+      </div>
+      <div class="optn-tile">
+        <div class="optn-tile-label">Retention</div>
+        <div class="optn-tile-value">7yr</div>
+        <div class="optn-tile-trend">WORM · regulatory hold capable</div>
+      </div>
+      <div class="optn-tile">
+        <div class="optn-tile-label">Last Export</div>
+        <div class="optn-tile-value mono" style="font-size:14px">—</div>
+        <div class="optn-tile-trend">never</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        <span>Event Stream</span>
+        <span class="mono" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0.06em">most recent first · click hash to inspect</span>
+      </div>
+      <div id="auditList">
+        ${allEntries.map(e => auditRowHtml(e)).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function auditRowHtml(e) {
+  return `
+    <div class="audit-row ${e.severity || 'info'}" data-search="${escapeHtml((e.actor + ' ' + e.action + ' ' + e.caseName).toLowerCase())}">
+      <div class="audit-seq mono">#${String(e.seq).padStart(3, '0')}</div>
+      <div class="audit-time">${formatDateTime(e.t)}</div>
+      <div class="audit-actor">${escapeHtml(e.actor)}</div>
+      <div class="audit-action">${escapeHtml(e.action)}</div>
+      <div class="audit-case-link" onclick="navigate('case-detail', ${e.caseId})">${escapeHtml(e.caseName.split(' — ')[0])} →</div>
+      <div class="audit-hash" title="prev: ${e.prevHash}">
+        <span class="audit-hash-link"></span>
+        <span>${e.hash}</span>
+      </div>
+    </div>
+  `;
+}
+
+function filterAuditLedger() {
+  const q = (document.getElementById("auditSearch")?.value || "").toLowerCase();
+  document.querySelectorAll("#auditList .audit-row").forEach(row => {
+    const data = row.getAttribute("data-search") || "";
+    row.style.display = (q === "" || data.includes(q)) ? "" : "none";
+  });
+}
+
+
+/* =====================================================
+   UTILITIES
+   ===================================================== */
+function pad(n) { return n < 10 ? "0" + n : "" + n; }
+function formatTime(ts) {
+  const d = new Date(ts);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatDateTime(ts) {
+  const d = new Date(ts);
+  return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${formatTime(ts)}`;
+}
+function formatElapsed(ms) {
+  if (!ms || ms < 0) ms = 0;
+  const min = Math.floor(ms / 60000);
+  if (min < 1)  return "just now";
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ${min % 60}m`;
+}
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+
+/* Clock */
+function updateClock() {
+  const d = new Date();
+  document.getElementById("clock").textContent =
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* Boot */
+navigate("dashboard");
+
+</script>
+
+</body>
+</html>
