@@ -101,3 +101,7 @@ These were identified in v5 but not addressed in the prototype:
 ## 2026-05-23: Modular frontend foundation
 
 Converted the Claude v5 single-file prototype into a Vite + React + TypeScript frontend foundation with typed seeded data, app-level reducer state, reusable shell/components, all core product screens, workflow/status interactions, audit-entry side effects, and global/case-scoped Athena insight generation.
+
+## 2026-05-23: V1 investor-demo planning
+
+Merged the frontend foundation into `main`, created the `codex/v1-investor-demo` working branch, and added `build-pack/10-v1-execution-plan.md` as the source-of-truth plan for the frontend-only V1 deepening pass.

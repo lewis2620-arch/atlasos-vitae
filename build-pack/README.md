@@ -13,10 +13,12 @@ This folder contains the markdown files to hand off the Claude prototype into a 
 8. `07-build-plan.md`
 9. `08-next-sprint.md`
 10. `09-feature-map-and-roadmap.md`
+11. `10-v1-execution-plan.md`
 
 ## How to use in Codex
 - Start with `00-master-brief.md` as the primary instruction file.
 - Use `09-feature-map-and-roadmap.md` as the master strategy layer for parity, wedge priorities, and roadmap guardrails.
+- Use `10-v1-execution-plan.md` as the current implementation plan for the investor-demo V1 pass.
 - Attach or paste the current prototype HTML from Claude.
 - Keep the other markdown files in the same working directory so Codex can reference them.
 - Tell Codex to preserve the current visual language while converting the prototype into a real frontend foundation.
